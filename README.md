@@ -11,27 +11,27 @@
 
 ---
 
-## ✨ Key Features
+##Key Features
 
 | Feature | Description |
 |---------|-------------|
-| 👻 **Invisible Always-on-Top Window** | Bypasses screen-sharing restrictions with a stealth UI (toggleable via `Ctrl+B`). Perfect for online interviews and coding practice. |
-| 📸 **Intelligent Screenshot Queue** | Instantly capture problem statements, compile errors, and code snippets with `Ctrl+H` or upload image files directly. Queue up to 5 screenshots for batch processing. |
-| 📤 **Screenshot Upload Support** | Upload image files directly (`Ctrl+U`) instead of just taking screenshots—perfect for question code or error messages. |
-| 👨‍💻 **Smart Problem Detection** | Automatically distinguishes between practical algorithm challenges and theoretical definition questions, formatting output dynamically. |
-| ⚙️ **100% Offline Processing** | All reasoning, problem extraction, and debugging rely on a local Ollama instance. Zero cloud dependency. Zero telemetry. |
-| ⌨️ **Blazing-Fast Keyboard Shortcuts** | Fully keyboard-driven workflow—capture, process, and reset without ever moving your mouse. See [shortcuts table](#-global-keyboard-shortcuts) below. |
-| 🎛️ **Per-Stage Model Tuning** | Select individual LLM models for Problem Extraction, Solution Generation, and Debugging directly from the app settings. |
-| 🔊 **Voice Input Support** | Dictate questions using your microphone for hands-free interaction. |
-| 💾 **Persistent Configuration** | All settings stored locally in your app data directory—no cloud sync, complete privacy.
+|  **Invisible Always-on-Top Window** | Bypasses screen-sharing restrictions with a stealth UI (toggleable via `Ctrl+B`). Perfect for online interviews and coding practice. |
+|  **Intelligent Screenshot Queue** | Instantly capture problem statements, compile errors, and code snippets with `Ctrl+H` or upload image files directly. Queue up to 5 screenshots for batch processing. |
+|  **Screenshot Upload Support** | Upload image files directly (`Ctrl+U`) instead of just taking screenshots—perfect for question code or error messages. |
+|  **Smart Problem Detection** | Automatically distinguishes between practical algorithm challenges and theoretical definition questions, formatting output dynamically. |
+|  **100% Offline Processing** | All reasoning, problem extraction, and debugging rely on a local Ollama instance. Zero cloud dependency. Zero telemetry. |
+|  **Blazing-Fast Keyboard Shortcuts** | Fully keyboard-driven workflow—capture, process, and reset without ever moving your mouse. See [shortcuts table](#-global-keyboard-shortcuts) below. |
+|  **Per-Stage Model Tuning** | Select individual LLM models for Problem Extraction, Solution Generation, and Debugging directly from the app settings. |
+|  **Voice Input Support** | Dictate questions using your microphone for hands-free interaction. |
+|  **Persistent Configuration** | All settings stored locally in your app data directory—no cloud sync, complete privacy.
 
 ---
 
-## 🏗️ Application Architecture
+## Application Architecture
 
 The architecture follows a **three-layer model**: React frontend → Electron IPC layer → Local AI backend.
 
-### 📊 System Architecture Diagram
+###  System Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -92,7 +92,7 @@ The architecture follows a **three-layer model**: React frontend → Electron IP
         └─────────────────────────────┘
 ```
 
-### 📝 Component Code Architecture
+###  Component Code Architecture
 
 ```typescript
 // src/App.tsx
@@ -137,7 +137,7 @@ const Queue = () => {
 // Defaults to environment variables if not found
 ```
 
-### 🔄 **Data Flow: From Screenshot to Solution**
+###  **Data Flow: From Screenshot to Solution**
 
 ```
 User presses Ctrl+H
@@ -171,7 +171,7 @@ Display formatted solution in Solutions view
 
 ---
 
-## 🛠️ Installation & Setup
+## **Installation & Setup**
 
 ### Prerequisites
 
@@ -245,11 +245,11 @@ chmod +x stealth-run.sh
 npm run dev
 ```
 
-> **⚠️ Pro Tip:** If the window launches invisibly, press `Ctrl+B` (or `Cmd+B`) to toggle visibility. You can also use the tray icon.
+> ** Pro Tip:** If the window launches invisibly, press `Ctrl+B` (or `Cmd+B`) to toggle visibility. You can also use the tray icon.
 
 ---
 
-## ⌨️ Keyboard Shortcuts Guide
+## Keyboard Shortcuts Guide
 
 Master the entire workflow with these global hotkeys. All shortcuts work even when the window is hidden or another app is focused.
 
@@ -281,7 +281,7 @@ Master the entire workflow with these global hotkeys. All shortcuts work even wh
 
 ---
 
-## ⚙️ Configuration & Customization
+##  Configuration & Customization
 
 ### Configuration File Location
 
@@ -332,7 +332,7 @@ All settings are stored as JSON in your OS-specific app data directory:
 
 ---
 
-## 🚀 Development Guide
+##  Development Guide
 
 ### Project Structure
 
@@ -442,7 +442,7 @@ mainWindow.webContents.openDevTools()
 
 ---
 
-## 📖 API Documentation
+## API Documentation
 
 ### Core IPC Methods
 
@@ -542,11 +542,11 @@ onCreditsUpdated(callback: (credits: number) => void): () => void
 
 ---
 
-## 🐞 Troubleshooting Guide
+##  Troubleshooting Guide
 
 ### Common Issues & Solutions
 
-#### ❌ "Processing fails instantly"
+####  "Processing fails instantly"
 **Problem:** Screenshots uploaded but nothing happens, or you get an immediate error.
 
 **Solutions:**
@@ -566,7 +566,7 @@ ollama pull qwen2.5-coder  # Re-pull if missing
 
 ---
 
-#### ❌ "Model not found" error
+####  "Model not found" error
 **Problem:** Settings says the model doesn't exist, even after pulling it.
 
 **Solutions:**
@@ -581,7 +581,7 @@ ollama pull qwen2.5-coder  # Re-pull if missing
 
 ---
 
-#### ❌ "Window won't appear" or "stays invisible"
+####  "Window won't appear" or "stays invisible"
 **Problem:** App launched but window is totally hidden.
 
 **Solutions:**
@@ -607,7 +607,7 @@ ollama pull qwen2.5-coder  # Re-pull if missing
 
 ---
 
-#### ❌ "Screenshot capture fails or is blank"
+####  "Screenshot capture fails or is blank"
 **Problem:** `Ctrl+H` doesn't capture anything, or image is all black.
 
 **Solutions:**
@@ -628,7 +628,7 @@ ollama pull qwen2.5-coder  # Re-pull if missing
 
 ---
 
-#### ❌ "Settings changes not saving"
+####  "Settings changes not saving"
 **Problem:** Changed model in Settings, but it reverts on restart.
 
 **Solutions:**
@@ -650,7 +650,7 @@ ollama pull qwen2.5-coder  # Re-pull if missing
 
 ---
 
-#### ❌ "High CPU usage or slow processing"
+#### "High CPU usage or slow processing"
 **Problem:** App is freezing or consuming lots of CPU.
 
 **Solutions:**
@@ -668,7 +668,7 @@ ollama pull qwen2.5-coder  # Re-pull if missing
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 We welcome contributions! Whether it's bug reports, feature requests, or code improvements, please:
 
@@ -692,7 +692,7 @@ We welcome contributions! Whether it's bug reports, feature requests, or code im
 
 ---
 
-## 📚 Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -705,32 +705,32 @@ We welcome contributions! Whether it's bug reports, feature requests, or code im
 
 ---
 
-## 🔒 Privacy & Security
+##  Privacy & Security
 
-- ✅ **100% Offline** - No cloud calls, no telemetry, no analytics
-- ✅ **Full Privacy** - Your code and questions never leave your computer
-- ✅ **No API Keys** - Works entirely with local Ollama instance
-- ✅ **Open Source** - Audit the code anytime
-- ✅ **No User Tracking** - No accounts, no logins, no data collection
-- ✅ **Local Storage Only** - All configs stored in your app data directory
+-  **100% Offline** - No cloud calls, no telemetry, no analytics
+-  **Full Privacy** - Your code and questions never leave your computer
+-  **No API Keys** - Works entirely with local Ollama instance
+-  **Open Source** - Audit the code anytime
+-  **No User Tracking** - No accounts, no logins, no data collection
+-  **Local Storage Only** - All configs stored in your app data directory
 
 ---
 
-## 📝 License
+##  License
 
 This project is licensed under the **GNU Affero General Public License v3.0**.
 
 This means:
-- ✅ Free to use for any purpose
-- ✅ Can modify and redistribute
-- ⚠️ Must provide source code if distributed
-- ⚠️ Modifications must also be open source under AGPL-3.0
+-  Free to use for any purpose
+-  Can modify and redistribute
+-  Must provide source code if distributed
+-  Modifications must also be open source under AGPL-3.0
 
 See [LICENSE](LICENSE) for full text.
 
 ---
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - **Ollama** - For making local LLM inference accessible
 - **Qwen Team** - For qwen2.5-coder and community contributions
@@ -741,7 +741,7 @@ See [LICENSE](LICENSE) for full text.
 
 ---
 
-## 📞 Support & Community
+##  Support & Community
 
 - **GitHub Issues:** Report bugs and request features  
 - **Discussions:** Ask questions and share tips  
@@ -752,5 +752,5 @@ See [LICENSE](LICENSE) for full text.
 <div align="center">
   <p><strong>Made with ❤️ by the Interview Coder Community</strong></p>
   <p><i>Your AI-powered coding interview companion</i></p>
-  <p>⭐ If this project helps you, please consider starring on GitHub! ⭐</p>
+  <p> If this project helps you, please consider starring on GitHub!</p>
 </div>
