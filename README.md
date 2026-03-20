@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🚀 Interview Coder</h1>
+  <h1>Interview Coder</h1>
   <p><strong>Open-source Electron desktop app for screenshot-based coding interview assistance and theory Q&A, powered entirely by a local AI model.</strong></p>
   <p><i>✨ No Paywalls • No Subscriptions • No API Keys • 100% Offline Inference ✨</i></p>
   
