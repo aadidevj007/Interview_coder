@@ -1,7 +1,7 @@
 <div align="center">
   <h1>Interview Coder</h1>
   <p><strong>Open-source Electron desktop app for screenshot-based coding interview assistance and theory Q&A, powered entirely by a local AI model.</strong></p>
-  <p><i>✨ No Paywalls • No Subscriptions • No API Keys • 100% Offline Inference ✨</i></p>
+  <p><i>No Paywalls • No Subscriptions • No API Keys • 100% Offline Inference</i></p>
   
   [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
   [![Built with Electron](https://img.shields.io/badge/Built%20with-Electron-9feaf9.svg)](https://www.electronjs.org/)
