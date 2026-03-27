@@ -20,7 +20,7 @@
 |  **Screenshot Upload Support** | Upload image files directly (`Ctrl+U`) instead of just taking screenshots—perfect for question code or error messages. |
 |  **Smart Problem Detection** | Automatically distinguishes between practical algorithm challenges and theoretical definition questions, formatting output dynamically. |
 |  **100% Offline Processing** | All reasoning, problem extraction, and debugging rely on a local Ollama instance. Zero cloud dependency. Zero telemetry. |
-|  **Blazing-Fast Keyboard Shortcuts** | Fully keyboard-driven workflow—capture, process, and reset without ever moving your mouse. See [Keyboard Shortcuts Guide](#-global-keyboard-shortcuts) below. |
+|  **Blazing-Fast Keyboard Shortcuts** | Fully keyboard-driven workflow—capture, process, and reset without ever moving your mouse. See Keyboard Shortcuts Guide below. |
 |  **Per-Stage Model Tuning** | Select individual LLM models for Problem Extraction, Solution Generation, and Debugging directly from the app settings. |
 |  **Voice Input Support** | Dictate questions using your microphone for hands-free interaction. |
 |  **Persistent Configuration** | All settings stored locally in your app data directory—no cloud sync, complete privacy.
