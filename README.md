@@ -716,20 +716,6 @@ We welcome contributions! Whether it's bug reports, feature requests, or code im
 
 ---
 
-##  License
-
-This project is licensed under the **GNU Affero General Public License v3.0**.
-
-This means:
--  Free to use for any purpose
--  Can modify and redistribute
--  Must provide source code if distributed
--  Modifications must also be open source under AGPL-3.0
-
-See [LICENSE](LICENSE) for full text.
-
----
-
 ##  Acknowledgments
 
 - **Ollama** - For making local LLM inference accessible
@@ -750,7 +736,7 @@ See [LICENSE](LICENSE) for full text.
 ---
 
 <div align="center">
-  <p><strong>Made with ❤️ by the Interview Coder Community</strong></p>
+  <p><strong>Made by Aadidev J</strong></p>
   <p><i>Your AI-powered coding interview companion</i></p>
   <p> If this project helps you, please consider starring on GitHub!</p>
 </div>
