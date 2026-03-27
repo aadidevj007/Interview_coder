@@ -245,7 +245,7 @@ chmod +x stealth-run.sh
 npm run dev
 ```
 
-> ** Pro Tip:** If the window launches invisibly, press `Ctrl+B` (or `Cmd+B`) to toggle visibility. You can also use the tray icon.
+> **Pro Tip:** If the window launches invisibly, press `Ctrl+B` (or `Cmd+B`) to toggle visibility. You can also use the tray icon.
 
 ---
 
