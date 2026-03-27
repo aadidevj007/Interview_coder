@@ -217,7 +217,7 @@ ollama list
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone <[repo-url>](https://github.com/aadidevj007/Interview_coder)
 cd interview-coder
 
 # Install dependencies
