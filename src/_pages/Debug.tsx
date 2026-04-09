@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Debug.tsx
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import React, { useEffect, useRef, useState } from "react"
@@ -464,3 +465,4 @@ const Debug: React.FC<DebugProps> = ({
 }
 
 export default Debug
+

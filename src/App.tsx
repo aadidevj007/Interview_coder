@@ -70,11 +70,22 @@ function App() {
       description: string,
       variant: "neutral" | "success" | "error"
     ) => {
-      setToastState({
-        open: true,
-        title,
-        description,
-        variant
+      setToastState((current) => {
+        if (
+          current.open &&
+          current.title === title &&
+          current.description === description &&
+          current.variant === variant
+        ) {
+          return current
+        }
+
+        return {
+          open: true,
+          title,
+          description,
+          variant
+        }
       })
     },
     []
@@ -139,8 +150,8 @@ function App() {
           updateLanguage("python")
         }
         
-        // Model settings are now managed through the settings dialog
-        // and stored in config as extractionModel, solutionModel, and debuggingModel
+        // Model settings are managed through the settings dialog and stored
+        // as extractionModel, solutionModel, and validationModel.
         
         markInitialized()
       } catch (error) {
@@ -190,6 +201,7 @@ function App() {
                 credits={credits}
                 currentLanguage={currentLanguage}
                 setLanguage={updateLanguage}
+                isOverlayOpen={isSettingsOpen || toastState.open}
               />
             ) : (
               <div className="min-h-screen bg-black flex items-center justify-center">

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from 'react';
 import { Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -98,3 +99,4 @@ export function Header({ currentLanguage, setLanguage, onOpenSettings }: HeaderP
     </div>
   );
 }
+

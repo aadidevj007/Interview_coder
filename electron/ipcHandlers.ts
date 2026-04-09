@@ -1,6 +1,6 @@
 // ipcHandlers.ts
 
-import { ipcMain, shell, dialog } from "electron"
+import { ipcMain, shell, dialog, OpenDialogOptions } from "electron"
 import { randomBytes } from "crypto"
 import { IIpcHandlerDeps } from "./main"
 import { configHelper } from "./ConfigHelper"
@@ -104,6 +104,10 @@ export function initializeIpcHandlers(deps: IIpcHandlerDeps): void {
   // Screenshot processing handlers
   ipcMain.handle("process-screenshots", async () => {
     await deps.processingHelper?.processScreenshots()
+  })
+
+  ipcMain.handle("trigger-process-text-query", async (_event, query: string) => {
+    return deps.processingHelper?.processTextQuery(query)
   })
 
   // Window dimension handlers
@@ -344,35 +348,45 @@ export function initializeIpcHandlers(deps: IIpcHandlerDeps): void {
   })
 
   // Upload screenshot handler
-  ipcMain.handle("upload-screenshot", async (event) => {
+  ipcMain.handle("upload-screenshot", async () => {
     try {
       const mainWindow = deps.getMainWindow()
-      if (!mainWindow) {
-        return { success: false, error: "Main window not available" }
-      }
-
-      // Open file dialog to select image file
-      const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+      const dialogOptions: OpenDialogOptions = {
         properties: ["openFile"],
         filters: [
           {
             name: "Image Files",
-            extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp"]
+            extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp", "avif", "jfif"]
           },
           { name: "All Files", extensions: ["*"] }
         ]
-      })
-
-      if (filePaths.length === 0) {
-        return { success: false, error: "No file selected" }
       }
 
-      const selectedFilePath = filePaths[0]
+      // Use a parent window when available, but fall back to an unparented
+      // dialog so uploads still work if the main window is hidden or not ready.
+      const dialogResult =
+        mainWindow && !mainWindow.isDestroyed()
+          ? await dialog.showOpenDialog(mainWindow, dialogOptions)
+          : await dialog.showOpenDialog(dialogOptions)
+
+      if (dialogResult.canceled || dialogResult.filePaths.length === 0) {
+        return { success: false, cancelled: true }
+      }
+
+      const selectedFilePath = dialogResult.filePaths[0]
+      if (!selectedFilePath) {
+        return { success: false, error: "No file was selected" }
+      }
 
       // Upload the screenshot
       const uploadResult = await deps.uploadScreenshot(selectedFilePath)
 
-      if (uploadResult.success && uploadResult.path) {
+      if (
+        uploadResult.success &&
+        uploadResult.path &&
+        mainWindow &&
+        !mainWindow.isDestroyed()
+      ) {
         // Get preview and notify renderer
         const preview = await deps.getImagePreview(uploadResult.path)
         mainWindow.webContents.send("screenshot-taken", {
@@ -383,11 +397,51 @@ export function initializeIpcHandlers(deps: IIpcHandlerDeps): void {
 
       return uploadResult
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown upload error"
       console.error("Error uploading screenshot:", error)
       return {
         success: false,
-        error: `Failed to upload screenshot: ${error.message}`
+        error: message
       }
     }
   })
+
+  ipcMain.handle(
+    "upload-screenshot-buffer",
+    async (_event, payload: { data: Uint8Array | number[]; name?: string }) => {
+      try {
+        const byteArray =
+          payload.data instanceof Uint8Array
+            ? payload.data
+            : Uint8Array.from(payload.data || [])
+
+        const uploadResult = await deps.uploadScreenshotBuffer(
+          Buffer.from(byteArray),
+          payload.name
+        )
+
+        const mainWindow = deps.getMainWindow()
+        if (
+          uploadResult.success &&
+          uploadResult.path &&
+          mainWindow &&
+          !mainWindow.isDestroyed()
+        ) {
+          const preview = await deps.getImagePreview(uploadResult.path)
+          mainWindow.webContents.send("screenshot-taken", {
+            path: uploadResult.path,
+            preview
+          })
+        }
+
+        return uploadResult
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown upload error"
+        console.error("Error uploading screenshot buffer:", error)
+        return { success: false, error: message }
+      }
+    }
+  )
 }

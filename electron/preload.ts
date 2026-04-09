@@ -1,5 +1,5 @@
 console.log("Preload script starting...")
-import { contextBridge, ipcRenderer } from "electron"
+import { clipboard, contextBridge, ipcRenderer } from "electron"
 const { shell } = require("electron")
 
 export const PROCESSING_EVENTS = {
@@ -138,6 +138,18 @@ const electronAPI = {
       )
     }
   },
+  onProcessingStatus: (
+    callback: (data: { message: string; progress: number }) => void
+  ) => {
+    const subscription = (
+      _: any,
+      data: { message: string; progress: number }
+    ) => callback(data)
+    ipcRenderer.on("processing-status", subscription)
+    return () => {
+      ipcRenderer.removeListener("processing-status", subscription)
+    }
+  },
   onUnauthorized: (callback: () => void) => {
     const subscription = () => callback()
     ipcRenderer.on(PROCESSING_EVENTS.UNAUTHORIZED, subscription)
@@ -221,7 +233,7 @@ const electronAPI = {
     modelProvider?: string
     extractionModel?: string
     solutionModel?: string
-    debuggingModel?: string
+    validationModel?: string
     language?: string
     opacity?: number
   }) => 
@@ -260,6 +272,29 @@ const electronAPI = {
     }
   },
   deleteLastScreenshot: () => ipcRenderer.invoke("delete-last-screenshot")
+  ,
+  uploadScreenshot: () => ipcRenderer.invoke("upload-screenshot"),
+  uploadScreenshotBuffer: (payload: { data: Uint8Array; name?: string }) =>
+    ipcRenderer.invoke("upload-screenshot-buffer", payload),
+  copyToClipboard: async (text: string) => {
+    try {
+      clipboard.writeText(text)
+      return { success: true }
+    } catch (error: any) {
+      console.error("Clipboard write failed in preload, trying main process:", error)
+      try {
+        return await ipcRenderer.invoke("copy-to-clipboard", text)
+      } catch (fallbackError: any) {
+        return {
+          success: false,
+          error:
+            fallbackError?.message ||
+            error?.message ||
+            "Clipboard write failed"
+        }
+      }
+    }
+  }
 }
 
 // Before exposing the API

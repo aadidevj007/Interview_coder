@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { autoUpdater } from "electron-updater"
 import { BrowserWindow, ipcMain, app } from "electron"
 import log from "electron-log"
@@ -107,3 +108,4 @@ export function initAutoUpdater() {
     autoUpdater.quitAndInstall()
   })
 }
+

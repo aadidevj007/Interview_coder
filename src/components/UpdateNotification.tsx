@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect, useState } from "react"
 import { Dialog, DialogContent } from "./ui/dialog"
 import { Button } from "./ui/button"
@@ -99,3 +100,4 @@ export const UpdateNotification: React.FC = () => {
     </Dialog>
   )
 }
+

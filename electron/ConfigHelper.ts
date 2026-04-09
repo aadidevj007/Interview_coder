@@ -1,210 +1,221 @@
-// ConfigHelper.ts
 import fs from "node:fs"
 import path from "node:path"
 import { app } from "electron"
 import { EventEmitter } from "events"
 
-export const MODEL_PROVIDER = "ollama";
+export const MODEL_PROVIDER = "ollama"
 
-interface Config {
-  modelProvider: string;
-  extractionModel: string;
-  solutionModel: string;
-  debuggingModel: string;
-  language: string;
-  opacity: number;
-  invisibilityEnabled: boolean;
-  mousePassthroughEnabled: boolean;
+export const CODING_MODELS = ["qwen2.5-coder"] as const
+
+export const VISION_MODELS = ["llava", "llama3.2-vision"] as const
+
+const ALLOWED_MODELS = [...CODING_MODELS, ...VISION_MODELS] as const
+const MODEL_MIGRATIONS: Record<string, string> = {
+  "deepseek-coder": "qwen2.5-coder"
+}
+
+export interface AppConfig {
+  modelProvider: string
+  extractionModel: string
+  solutionModel: string
+  validationModel: string
+  language: string
+  opacity: number
+  invisibilityEnabled: boolean
+  mousePassthroughEnabled: boolean
+}
+
+type LegacyAppConfig = Partial<AppConfig> & {
+  debuggingModel?: string
+  isInvisible?: boolean
 }
 
 export class ConfigHelper extends EventEmitter {
-  private configPath: string;
-  private defaultConfig: Config = {
+  private configPath: string
+
+  private defaultConfig: AppConfig = {
     modelProvider: MODEL_PROVIDER,
-    extractionModel: "qwen2.5-coder",
+    extractionModel: "llava",
     solutionModel: "qwen2.5-coder",
-    debuggingModel: "qwen2.5-coder",
+    validationModel: "qwen2.5-coder",
     language: "python",
-    opacity: 1.0,
+    opacity: 1,
     invisibilityEnabled: true,
     mousePassthroughEnabled: false
-  };
+  }
 
   constructor() {
-    super();
-    // Use the app's user data directory to store the config
+    super()
+
     try {
-      this.configPath = path.join(app.getPath('userData'), 'config.json');
-      console.log('Config path:', this.configPath);
-    } catch (err) {
-      console.warn('Could not access user data path, using fallback');
-      this.configPath = path.join(process.cwd(), 'config.json');
+      this.configPath = path.join(app.getPath("userData"), "config.json")
+    } catch (error) {
+      console.warn("Could not access user data path, using project fallback", error)
+      this.configPath = path.join(process.cwd(), "config.json")
     }
-    
-    // Ensure the initial config file exists
-    this.ensureConfigExists();
+
+    this.ensureConfigExists()
   }
 
-  /**
-   * Ensure config file exists
-   */
   private ensureConfigExists(): void {
+    if (!fs.existsSync(this.configPath)) {
+      this.saveConfig(this.defaultConfig)
+    }
+  }
+
+  private sanitizeModelSelection(
+    model: string | undefined,
+    fallback: string
+  ): string {
+    const normalizedModel =
+      model && MODEL_MIGRATIONS[model] ? MODEL_MIGRATIONS[model] : model
+
+    if (
+      normalizedModel &&
+      ALLOWED_MODELS.includes(
+        normalizedModel as (typeof ALLOWED_MODELS)[number]
+      )
+    ) {
+      return normalizedModel
+    }
+
+    return fallback
+  }
+
+  public isVisionModel(model: string): boolean {
+    return VISION_MODELS.includes(model as (typeof VISION_MODELS)[number])
+  }
+
+  public isCodingModel(model: string): boolean {
+    return CODING_MODELS.includes(model as (typeof CODING_MODELS)[number])
+  }
+
+  private normalizeConfig(input: LegacyAppConfig): AppConfig {
+    const config: AppConfig = {
+      ...this.defaultConfig,
+      ...input,
+      modelProvider: MODEL_PROVIDER
+    }
+
+    if (!input.validationModel && input.debuggingModel) {
+      config.validationModel = input.debuggingModel
+    }
+
+    if (typeof input.invisibilityEnabled !== "boolean" && typeof input.isInvisible === "boolean") {
+      config.invisibilityEnabled = input.isInvisible
+    }
+
+    config.extractionModel = this.sanitizeModelSelection(
+      config.extractionModel,
+      this.defaultConfig.extractionModel
+    )
+    config.solutionModel = this.sanitizeModelSelection(
+      config.solutionModel,
+      this.defaultConfig.solutionModel
+    )
+    config.validationModel = this.sanitizeModelSelection(
+      config.validationModel,
+      this.defaultConfig.validationModel
+    )
+
+    if (!this.isVisionModel(config.extractionModel)) {
+      config.extractionModel = this.defaultConfig.extractionModel
+    }
+
+    if (!this.isCodingModel(config.solutionModel)) {
+      config.solutionModel = this.defaultConfig.solutionModel
+    }
+
+    if (!this.isCodingModel(config.validationModel)) {
+      config.validationModel = this.defaultConfig.validationModel
+    }
+
+    return config
+  }
+
+  public loadConfig(): AppConfig {
     try {
       if (!fs.existsSync(this.configPath)) {
-        this.saveConfig(this.defaultConfig);
-      }
-    } catch (err) {
-      console.error("Error ensuring config exists:", err);
-    }
-  }
-
-  /**
-   * Validate and sanitize model selection to ensure only allowed models are used
-   */
-  private sanitizeModelSelection(model: string): string {
-    const allowedModels = ['qwen2.5-coder', 'deepseek-r1:1.5b'];
-    if (!allowedModels.includes(model)) {
-      console.warn(`Invalid model specified: ${model}. Using default model: ${this.defaultConfig.extractionModel}`);
-      return this.defaultConfig.extractionModel;
-    }
-    return model;
-  }
-
-  public loadConfig(): Config {
-    try {
-      if (fs.existsSync(this.configPath)) {
-        const configData = fs.readFileSync(this.configPath, 'utf8');
-        const config = JSON.parse(configData);
-
-        // Apply defaults and sanitize
-        const finalConfig = {
-          ...this.defaultConfig,
-          ...config,
-          modelProvider: MODEL_PROVIDER
-        } as Config;
-
-        finalConfig.extractionModel = this.sanitizeModelSelection(finalConfig.extractionModel);
-        finalConfig.solutionModel = this.sanitizeModelSelection(finalConfig.solutionModel);
-        finalConfig.debuggingModel = this.sanitizeModelSelection(finalConfig.debuggingModel);
-
-        return finalConfig;
+        this.saveConfig(this.defaultConfig)
+        return this.defaultConfig
       }
 
-      // If no config exists, create a default one
-      this.saveConfig(this.defaultConfig);
-      return this.defaultConfig;
-    } catch (err) {
-      console.error("Error loading config:", err);
-      return this.defaultConfig;
-    }
-  }
+      const rawConfig = fs.readFileSync(this.configPath, "utf8")
+      const normalized = this.normalizeConfig(JSON.parse(rawConfig) as LegacyAppConfig)
 
-  /**
-   * Save configuration to disk
-   */
-  public saveConfig(config: Config): void {
-    try {
-      // Ensure the directory exists
-      const configDir = path.dirname(this.configPath);
-      if (!fs.existsSync(configDir)) {
-        fs.mkdirSync(configDir, { recursive: true });
-      }
-      // Write the config file
-      fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2));
-    } catch (err) {
-      console.error("Error saving config:", err);
-    }
-  }
-
-  /**
-   * Update specific configuration values
-   */
-  public updateConfig(updates: Partial<Config>): Config {
-    try {
-      const currentConfig = this.loadConfig();
-
-      const newConfig: Config = {
-        ...currentConfig,
-        ...updates,
-        modelProvider: MODEL_PROVIDER
-      };
-
-      newConfig.extractionModel = this.sanitizeModelSelection(newConfig.extractionModel);
-      newConfig.solutionModel = this.sanitizeModelSelection(newConfig.solutionModel);
-      newConfig.debuggingModel = this.sanitizeModelSelection(newConfig.debuggingModel);
-
-      this.saveConfig(newConfig);
-
-      // Emit update event for meaningful changes
-      if (
-        updates.extractionModel !== undefined ||
-        updates.solutionModel !== undefined ||
-        updates.debuggingModel !== undefined ||
-        updates.language !== undefined ||
-        updates.opacity !== undefined ||
-        updates.invisibilityEnabled !== undefined ||
-        updates.mousePassthroughEnabled !== undefined
-      ) {
-        this.emit('config-updated', newConfig);
+      // Persist migrated configs so stale packaged/runtime builds stop reusing old keys.
+      if (rawConfig !== JSON.stringify(normalized, null, 2)) {
+        this.saveConfig(normalized)
       }
 
-      return newConfig;
+      return normalized
     } catch (error) {
-      console.error('Error updating config:', error);
-      return this.defaultConfig;
+      console.error("Error loading config:", error)
+      return this.defaultConfig
     }
   }
 
-  /**
-   * Get the stored opacity value
-   */
+  public saveConfig(config: AppConfig): void {
+    try {
+      const configDir = path.dirname(this.configPath)
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true })
+      }
+
+      fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2))
+    } catch (error) {
+      console.error("Error saving config:", error)
+    }
+  }
+
+  public updateConfig(updates: Partial<AppConfig>): AppConfig {
+    try {
+      const nextConfig = this.normalizeConfig({
+        ...this.loadConfig(),
+        ...updates
+      })
+
+      this.saveConfig(nextConfig)
+      this.emit("config-updated", nextConfig)
+      return nextConfig
+    } catch (error) {
+      console.error("Error updating config:", error)
+      return this.defaultConfig
+    }
+  }
+
   public getOpacity(): number {
-    const config = this.loadConfig();
-    return config.opacity !== undefined ? config.opacity : 1.0;
+    return this.loadConfig().opacity
   }
 
-  /**
-   * Set the window opacity value
-   */
   public setOpacity(opacity: number): void {
-    // Ensure opacity is between 0.1 and 1.0
-    const validOpacity = Math.min(1.0, Math.max(0.1, opacity));
-    this.updateConfig({ opacity: validOpacity });
-  }  
-
-  /**
-   * Get the preferred programming language
-   */
-  public getLanguage(): string {
-    const config = this.loadConfig();
-    return config.language || "python";
+    const validOpacity = Math.min(1, Math.max(0.1, opacity))
+    this.updateConfig({ opacity: validOpacity })
   }
 
-  /**
-   * Set the preferred programming language
-   */
+  public getLanguage(): string {
+    return this.loadConfig().language
+  }
+
   public setLanguage(language: string): void {
-    this.updateConfig({ language });
+    this.updateConfig({ language })
   }
 
   public isInvisibilityEnabled(): boolean {
-    const config = this.loadConfig();
-    return config.invisibilityEnabled !== false;
+    return this.loadConfig().invisibilityEnabled !== false
   }
 
   public setInvisibilityEnabled(invisibilityEnabled: boolean): void {
-    this.updateConfig({ invisibilityEnabled });
+    this.updateConfig({ invisibilityEnabled })
   }
 
   public isMousePassthroughEnabled(): boolean {
-    const config = this.loadConfig();
-    return config.mousePassthroughEnabled === true;
+    return this.loadConfig().mousePassthroughEnabled === true
   }
 
   public setMousePassthroughEnabled(mousePassthroughEnabled: boolean): void {
-    this.updateConfig({ mousePassthroughEnabled });
+    this.updateConfig({ mousePassthroughEnabled })
   }
 }
 
-// Export a singleton instance
-export const configHelper = new ConfigHelper();
+export const configHelper = new ConfigHelper()

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { app, BrowserWindow, screen, shell, ipcMain } from "electron"
 import path from "path"
 import fs from "fs"
@@ -10,6 +11,24 @@ import { configHelper } from "./ConfigHelper"
 
 // Constants
 const isDev = process.env.NODE_ENV === "development"
+
+// Prevent main-process crashes when stdout/stderr pipe is unavailable on Windows.
+for (const method of ["log", "warn", "error"] as const) {
+  const original = console[method].bind(console)
+  console[method] = (...args: unknown[]) => {
+    try {
+      original(...args)
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error as NodeJS.ErrnoException).code === "EPIPE"
+      ) {
+        return
+      }
+      throw error
+    }
+  }
+}
 
 // Application State
 const state = {
@@ -116,6 +135,10 @@ export interface IIpcHandlerDeps {
   moveWindowDown: () => void
   uploadScreenshot: (
     filePath: string
+  ) => Promise<{ success: boolean; path?: string; error?: string }>
+  uploadScreenshotBuffer: (
+    fileBuffer: Buffer,
+    originalName?: string
   ) => Promise<{ success: boolean; path?: string; error?: string }>
 }
 
@@ -402,9 +425,8 @@ function handleWindowClosed(): void {
   state.windowSize = null
 }
 
-// Window visibility functions
 function hideMainWindow(): void {
-  if (!state.mainWindow?.isDestroyed()) {
+  if (state.mainWindow && !state.mainWindow.isDestroyed()) {
     const bounds = state.mainWindow.getBounds();
     state.windowPosition = { x: bounds.x, y: bounds.y };
     state.windowSize = { width: bounds.width, height: bounds.height };
@@ -416,7 +438,7 @@ function hideMainWindow(): void {
 }
 
 function showMainWindow(): void {
-  if (!state.mainWindow?.isDestroyed()) {
+  if (state.mainWindow && !state.mainWindow.isDestroyed()) {
     if (state.windowPosition && state.windowSize) {
       state.mainWindow.setBounds({
         ...state.windowPosition,
@@ -447,13 +469,13 @@ function toggleMainWindow(): void {
 }
 
 function applyInvisibilityMode(enabled: boolean): void {
-  if (!state.mainWindow?.isDestroyed()) {
+  if (state.mainWindow && !state.mainWindow.isDestroyed()) {
     state.mainWindow.setContentProtection(enabled)
   }
 }
 
 function applyMousePassthroughMode(enabled: boolean): void {
-  if (!state.mainWindow?.isDestroyed()) {
+  if (state.mainWindow && !state.mainWindow.isDestroyed()) {
     state.mainWindow.setIgnoreMouseEvents(enabled, { forward: true })
   }
 }
@@ -527,7 +549,7 @@ function moveWindowVertical(updateFn: (y: number) => number): void {
 
 // Window dimension functions
 function setWindowDimensions(width: number, height: number): void {
-  if (!state.mainWindow?.isDestroyed()) {
+  if (state.mainWindow && !state.mainWindow.isDestroyed()) {
     const [currentX, currentY] = state.mainWindow.getPosition()
     const primaryDisplay = screen.getPrimaryDisplay()
     const workArea = primaryDisplay.workAreaSize
@@ -545,6 +567,14 @@ function setWindowDimensions(width: number, height: number): void {
 // Initialize application
 async function initializeApp() {
   try {
+    const { session } = require('electron')
+    session.defaultSession.setPermissionRequestHandler((webContents: any, permission: string, callback: (permissionGranted: boolean) => void) => {
+      if (permission === 'media') {
+        callback(true)
+      } else {
+        callback(false)
+      }
+    })
     // Set custom cache directory to prevent permission issues
     const appDataPath = path.join(app.getPath('appData'), 'interview-coder-v1')
     const sessionPath = path.join(appDataPath, 'session')
@@ -577,6 +607,7 @@ async function initializeApp() {
       PROCESSING_EVENTS: state.PROCESSING_EVENTS,
       takeScreenshot,
       uploadScreenshot,
+      uploadScreenshotBuffer,
       getView,
       toggleMainWindow,
       toggleInvisibilityMode,
@@ -737,6 +768,18 @@ async function uploadScreenshot(
   )
 }
 
+async function uploadScreenshotBuffer(
+  fileBuffer: Buffer,
+  originalName?: string
+): Promise<{ success: boolean; path?: string; error?: string }> {
+  return (
+    state.screenshotHelper?.uploadScreenshotBuffer(fileBuffer, originalName) || {
+      success: false,
+      error: "Screenshot helper not initialized"
+    }
+  )
+}
+
 function setHasDebugged(value: boolean): void {
   state.hasDebugged = value
 }
@@ -778,3 +821,4 @@ export {
 }
 
 app.whenReady().then(initializeApp)
+

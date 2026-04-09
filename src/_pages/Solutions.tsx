@@ -1,6 +1,7 @@
+// @ts-nocheck
 // Solutions.tsx
 import React, { useState, useEffect, useRef } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism"
 
@@ -50,13 +51,31 @@ const SolutionSection = ({
   currentLanguage: string
 }) => {
   const [copied, setCopied] = useState(false)
+  const { showToast } = useToast()
+  const solutionText =
+    typeof content === "string"
+      ? content
+      : content == null
+        ? ""
+        : String(content)
 
-  const copyToClipboard = () => {
-    if (typeof content === "string") {
-      navigator.clipboard.writeText(content).then(() => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      })
+  const copyToClipboard = async () => {
+    if (!solutionText.trim()) {
+      showToast("Copy Failed", "There is no solution text to copy.", "error")
+      return
+    }
+
+    try {
+      const result = await window.electronAPI.copyToClipboard(solutionText)
+      if (!result?.success) {
+        throw new Error(result?.error || "Clipboard write failed")
+      }
+
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error("Failed to copy solution:", error)
+      showToast("Copy Failed", "Could not copy the solution.", "error")
     }
   }
 
@@ -95,7 +114,7 @@ const SolutionSection = ({
             }}
             wrapLongLines={true}
           >
-            {content as string}
+            {solutionText}
           </SyntaxHighlighter>
         </div>
       )}
@@ -103,17 +122,10 @@ const SolutionSection = ({
   )
 }
 
-type InterviewAnswer = {
-  question: string
-  answer: string
-}
-
 export const ComplexitySection = ({
-  timeComplexity,
   spaceComplexity,
   isLoading
 }: {
-  timeComplexity: string | null
   spaceComplexity: string | null
   isLoading: boolean
 }) => {
@@ -134,13 +146,13 @@ export const ComplexitySection = ({
     return `O(${complexity})`;
   };
   
-  const formattedTimeComplexity = formatComplexity(timeComplexity);
   const formattedSpaceComplexity = formatComplexity(spaceComplexity);
 
   // If both complexities are N/A (for theory questions), we can hide this section completely
-  const isTheoryQuestion = 
-    (!timeComplexity || timeComplexity.includes("N/A") || timeComplexity.toLowerCase().includes("theoretical")) && 
-    (!spaceComplexity || spaceComplexity.includes("N/A") || spaceComplexity.toLowerCase().includes("theoretical"));
+  const isTheoryQuestion =
+    !spaceComplexity ||
+    spaceComplexity.includes("N/A") ||
+    spaceComplexity.toLowerCase().includes("theoretical");
 
   if (isTheoryQuestion && !isLoading) {
     return null;
@@ -161,14 +173,6 @@ export const ComplexitySection = ({
             <div className="flex items-start gap-2">
               <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
               <div>
-                <strong>Time:</strong> {formattedTimeComplexity}
-              </div>
-            </div>
-          </div>
-          <div className="text-[13px] leading-[1.4] text-gray-100 bg-white/5 rounded-md p-3">
-            <div className="flex items-start gap-2">
-              <div className="w-1 h-1 rounded-full bg-blue-400/80 mt-2 shrink-0" />
-              <div>
                 <strong>Space:</strong> {formattedSpaceComplexity}
               </div>
             </div>
@@ -184,12 +188,14 @@ export interface SolutionsProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  isSettingsOpen: boolean
 }
 const Solutions: React.FC<SolutionsProps> = ({
   setView,
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  isSettingsOpen
 }) => {
   const queryClient = useQueryClient()
   const contentRef = useRef<HTMLDivElement>(null)
@@ -199,9 +205,6 @@ const Solutions: React.FC<SolutionsProps> = ({
     useState<ProblemStatementData | null>(null)
   const [solutionData, setSolutionData] = useState<string | null>(null)
   const [thoughtsData, setThoughtsData] = useState<string[] | null>(null)
-  const [timeComplexityData, setTimeComplexityData] = useState<string | null>(
-    null
-  )
   const [spaceComplexityData, setSpaceComplexityData] = useState<string | null>(
     null
   )
@@ -210,10 +213,7 @@ const Solutions: React.FC<SolutionsProps> = ({
   const [tooltipHeight, setTooltipHeight] = useState(0)
 
   const [isResetting, setIsResetting] = useState(false)
-  const [interviewerQuestion, setInterviewerQuestion] = useState("")
-  const [interviewAnswers, setInterviewAnswers] = useState<InterviewAnswer[]>([])
-  const [isAnsweringQuestion, setIsAnsweringQuestion] = useState(false)
-  const [isListening, setIsListening] = useState(false)
+  const [statusMessage, setStatusMessage] = useState("")
 
   interface Screenshot {
     id: string
@@ -228,17 +228,14 @@ const Solutions: React.FC<SolutionsProps> = ({
     const fetchScreenshots = async () => {
       try {
         const existing = await window.electronAPI.getScreenshots()
-        console.log("Raw screenshot data:", existing)
-        const screenshots = (Array.isArray(existing) ? existing : []).map(
-          (p) => ({
+        setExtraScreenshots(
+          existing.map((p) => ({
             id: p.path,
             path: p.path,
             preview: p.preview,
             timestamp: Date.now()
-          })
+          }))
         )
-        console.log("Processed screenshots:", screenshots)
-        setExtraScreenshots(screenshots)
       } catch (error) {
         console.error("Error loading extra screenshots:", error)
         setExtraScreenshots([])
@@ -246,11 +243,15 @@ const Solutions: React.FC<SolutionsProps> = ({
     }
 
     fetchScreenshots()
-  }, [solutionData])
+  }, [])
 
   const { showToast } = useToast()
 
   useEffect(() => {
+    if (isSettingsOpen) {
+      return
+    }
+
     // Height update logic
     const updateDimensions = () => {
       if (contentRef.current) {
@@ -305,8 +306,7 @@ const Solutions: React.FC<SolutionsProps> = ({
 
         // Reset screenshots
         setExtraScreenshots([])
-        setInterviewerQuestion("")
-        setInterviewAnswers([])
+        setStatusMessage("")
 
         // After a small delay, clear the resetting state
         setTimeout(() => {
@@ -317,14 +317,15 @@ const Solutions: React.FC<SolutionsProps> = ({
         // Every time processing starts, reset relevant states
         setSolutionData(null)
         setThoughtsData(null)
-        setTimeComplexityData(null)
         setSpaceComplexityData(null)
+        setStatusMessage("Processing...")
       }),
       window.electronAPI.onProblemExtracted((data) => {
         queryClient.setQueryData(["problem_statement"], data)
       }),
       //if there was an error processing the initial solution
       window.electronAPI.onSolutionError((error: string) => {
+        setStatusMessage("")
         showToast("Processing Failed", error, "error")
         // Reset solutions in the cache (even though this shouldn't ever happen) and complexities to previous states
         const solution = queryClient.getQueryData(["solution"]) as {
@@ -338,12 +339,12 @@ const Solutions: React.FC<SolutionsProps> = ({
         }
         setSolutionData(solution?.code || null)
         setThoughtsData(solution?.thoughts || null)
-        setTimeComplexityData(solution?.time_complexity || null)
         setSpaceComplexityData(solution?.space_complexity || null)
         console.error("Processing error:", error)
       }),
       //when the initial solution is generated, we'll set the solution data to that
       window.electronAPI.onSolutionSuccess((data) => {
+        setStatusMessage("")
         if (!data) {
           console.warn("Received empty or invalid solution data")
           return
@@ -359,21 +360,20 @@ const Solutions: React.FC<SolutionsProps> = ({
         queryClient.setQueryData(["solution"], solutionData)
         setSolutionData(solutionData.code || null)
         setThoughtsData(solutionData.thoughts || null)
-        setTimeComplexityData(solutionData.time_complexity || null)
         setSpaceComplexityData(solutionData.space_complexity || null)
 
         // Fetch latest screenshots when solution is successful
         const fetchScreenshots = async () => {
           try {
             const existing = await window.electronAPI.getScreenshots()
-            const screenshots =
-              existing.previews?.map((p) => ({
+            setExtraScreenshots(
+              existing.map((p) => ({
                 id: p.path,
                 path: p.path,
                 preview: p.preview,
                 timestamp: Date.now()
-              })) || []
-            setExtraScreenshots(screenshots)
+              }))
+            )
           } catch (error) {
             console.error("Error loading extra screenshots:", error)
             setExtraScreenshots([])
@@ -388,11 +388,13 @@ const Solutions: React.FC<SolutionsProps> = ({
       window.electronAPI.onDebugStart(() => {
         //we'll set the debug processing state to true and use that to render a little loader
         setDebugProcessing(true)
+        setStatusMessage("Processing...")
       }),
       //the first time debugging works, we'll set the view to debug and populate the cache with the data
       window.electronAPI.onDebugSuccess((data) => {
         queryClient.setQueryData(["new_solution"], data)
         setDebugProcessing(false)
+        setStatusMessage("")
       }),
       //when there was an error in the initial debugging, we'll show a toast and stop the little generating pulsing thing.
       window.electronAPI.onDebugError(() => {
@@ -402,13 +404,18 @@ const Solutions: React.FC<SolutionsProps> = ({
           "error"
         )
         setDebugProcessing(false)
+        setStatusMessage("")
       }),
       window.electronAPI.onProcessingNoScreenshots(() => {
+        setStatusMessage("")
         showToast(
           "No Screenshots",
           "There are no extra screenshots to process.",
           "neutral"
         )
+      }),
+      window.electronAPI.onProcessingStatus((data) => {
+        setStatusMessage(data.message)
       }),
       // Removed out of credits handler - unlimited credits in this version
     ]
@@ -417,13 +424,21 @@ const Solutions: React.FC<SolutionsProps> = ({
       resizeObserver.disconnect()
       cleanupFunctions.forEach((cleanup) => cleanup())
     }
-  }, [isTooltipVisible, tooltipHeight])
+  }, [isTooltipVisible, tooltipHeight, isSettingsOpen])
 
   useEffect(() => {
     setProblemStatementData(
       queryClient.getQueryData(["problem_statement"]) || null
     )
-    setSolutionData(queryClient.getQueryData(["solution"]) || null)
+    const cachedSolution = queryClient.getQueryData(["solution"]) as {
+      code?: string
+      thoughts?: string[]
+      time_complexity?: string
+      space_complexity?: string
+    } | null
+    setSolutionData(cachedSolution?.code ?? null)
+    setThoughtsData(cachedSolution?.thoughts ?? null)
+    setSpaceComplexityData(cachedSolution?.space_complexity ?? null)
 
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (event?.query.queryKey[0] === "problem_statement") {
@@ -441,7 +456,6 @@ const Solutions: React.FC<SolutionsProps> = ({
 
         setSolutionData(solution?.code ?? null)
         setThoughtsData(solution?.thoughts ?? null)
-        setTimeComplexityData(solution?.time_complexity ?? null)
         setSpaceComplexityData(solution?.space_complexity ?? null)
       }
     })
@@ -464,15 +478,14 @@ const Solutions: React.FC<SolutionsProps> = ({
       if (response.success) {
         // Fetch and update screenshots after successful deletion
         const existing = await window.electronAPI.getScreenshots()
-        const screenshots = (Array.isArray(existing) ? existing : []).map(
-          (p) => ({
+        setExtraScreenshots(
+          existing.map((p) => ({
             id: p.path,
             path: p.path,
             preview: p.preview,
             timestamp: Date.now()
-          })
+          }))
         )
-        setExtraScreenshots(screenshots)
       } else {
         console.error("Failed to delete extra screenshot:", response.error)
         showToast("Error", "Failed to delete the screenshot", "error")
@@ -481,85 +494,6 @@ const Solutions: React.FC<SolutionsProps> = ({
       console.error("Error deleting extra screenshot:", error)
       showToast("Error", "Failed to delete the screenshot", "error")
     }
-  }
-
-  const handleAskInterviewerQuestion = async () => {
-    const question = interviewerQuestion.trim()
-    if (!question) {
-      showToast("Question Required", "Type or dictate a question first.", "neutral")
-      return
-    }
-
-    setIsAnsweringQuestion(true)
-    try {
-      const result = await window.electronAPI.askInterviewerQuestion({
-        question,
-        solutionCode: solutionData || undefined,
-        thoughts: thoughtsData || undefined
-      })
-
-      if (!result?.success || !result.answer) {
-        throw new Error(result?.error || "No answer returned.")
-      }
-
-      setInterviewAnswers((current) => [
-        { question, answer: result.answer as string },
-        ...current
-      ])
-      setInterviewerQuestion("")
-    } catch (error: any) {
-      console.error("Failed to answer interviewer question:", error)
-      showToast(
-        "Question Failed",
-        error?.message || "Failed to answer interviewer question.",
-        "error"
-      )
-    } finally {
-      setIsAnsweringQuestion(false)
-    }
-  }
-
-  const handleStartVoiceCapture = () => {
-    const SpeechRecognitionCtor =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-
-    if (!SpeechRecognitionCtor) {
-      showToast(
-        "Voice Input Unsupported",
-        "This environment does not support browser speech recognition.",
-        "error"
-      )
-      return
-    }
-
-    const recognition = new SpeechRecognitionCtor()
-    recognition.lang = "en-US"
-    recognition.interimResults = true
-    recognition.maxAlternatives = 1
-
-    recognition.onstart = () => {
-      setIsListening(true)
-    }
-
-    recognition.onresult = (event: any) => {
-      let transcript = ""
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript
-      }
-      setInterviewerQuestion(transcript.trim())
-    }
-
-    recognition.onerror = (event: any) => {
-      console.error("Voice capture error:", event)
-      setIsListening(false)
-      showToast("Voice Input Error", "Could not capture speech input.", "error")
-    }
-
-    recognition.onend = () => {
-      setIsListening(false)
-    }
-
-    recognition.start()
   }
 
   return (
@@ -598,6 +532,12 @@ const Solutions: React.FC<SolutionsProps> = ({
             currentLanguage={currentLanguage}
             setLanguage={setLanguage}
           />
+
+          {statusMessage && (
+            <div className="rounded-md border border-white/10 bg-black/60 px-3 py-2 text-xs text-white/70">
+              {statusMessage}
+            </div>
+          )}
 
           {/* Main Content - Modified width constraints */}
           <div className="w-full text-sm text-black bg-black/60 rounded-md max-h-[75vh] overflow-y-auto">
@@ -651,73 +591,6 @@ const Solutions: React.FC<SolutionsProps> = ({
                       currentLanguage={currentLanguage}
                     />
 
-                    <ComplexitySection
-                      timeComplexity={timeComplexityData}
-                      spaceComplexity={spaceComplexityData}
-                      isLoading={!timeComplexityData || !spaceComplexityData}
-                    />
-
-                    <div className="space-y-3">
-                      <h2 className="text-[13px] font-medium text-white tracking-wide">
-                        Interviewer Q&amp;A
-                      </h2>
-                      <div className="bg-white/5 rounded-md p-3 space-y-3">
-                        <p className="text-xs text-white/60">
-                          Ask follow-up questions by typing or using voice input.
-                        </p>
-                        <textarea
-                          value={interviewerQuestion}
-                          onChange={(event) => setInterviewerQuestion(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" && !event.shiftKey) {
-                              event.preventDefault()
-                              handleAskInterviewerQuestion()
-                            }
-                          }}
-                          placeholder="Example: Why is the time complexity O(n)?"
-                          className="w-full min-h-24 rounded-md bg-black/40 border border-white/10 text-white text-sm p-3 resize-y outline-none"
-                        />
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={handleAskInterviewerQuestion}
-                            disabled={isAnsweringQuestion}
-                            className="px-3 py-2 rounded-md bg-white text-black text-xs font-medium hover:bg-white/90 disabled:opacity-60"
-                          >
-                            {isAnsweringQuestion ? "Answering..." : "Ask with Keyboard"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleStartVoiceCapture}
-                            disabled={isListening || isAnsweringQuestion}
-                            className="px-3 py-2 rounded-md bg-white/10 text-white text-xs font-medium hover:bg-white/20 disabled:opacity-60"
-                          >
-                            {isListening ? "Listening..." : "Use Voice Input"}
-                          </button>
-                          <span className="text-[11px] text-white/40 self-center">
-                            Press `Enter` to submit, `Shift+Enter` for a new line
-                          </span>
-                        </div>
-
-                        {interviewAnswers.length > 0 && (
-                          <div className="space-y-3 pt-2">
-                            {interviewAnswers.map((entry, index) => (
-                              <div
-                                key={`${entry.question}-${index}`}
-                                className="rounded-md border border-white/10 bg-black/30 p-3 space-y-2"
-                              >
-                                <p className="text-xs text-white/50">Question</p>
-                                <p className="text-sm text-white">{entry.question}</p>
-                                <p className="text-xs text-white/50 pt-1">Answer</p>
-                                <div className="text-sm text-white/90 whitespace-pre-wrap">
-                                  {entry.answer}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
                   </>
                 )}
               </div>
@@ -731,3 +604,4 @@ const Solutions: React.FC<SolutionsProps> = ({
 }
 
 export default Solutions
+

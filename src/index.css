@@ -15,6 +15,12 @@
   will-change: opacity, transform;
 }
 
+/* Prevent Radix UI from shifting the body padding when Dialog opens */
+body {
+  padding-right: 0px !important;
+  margin-right: 0px !important;
+}
+
 /* Custom styling for dropdowns */
 select {
   appearance: menulist;

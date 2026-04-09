@@ -1,20 +1,24 @@
-// file: src/components/SubscribedApp.tsx
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import Queue from "../_pages/Queue"
-import Solutions from "../_pages/Solutions"
+import Queue from "./Queue"
+import Solutions from "./Solutions"
 import { useToast } from "../contexts/toast"
+import { Header } from "../components/Header/Header"
 
 interface SubscribedAppProps {
   credits: number
   currentLanguage: string
   setLanguage: (language: string) => void
+  isOverlayOpen: boolean
+  onOpenSettings: () => void
 }
 
 const SubscribedApp: React.FC<SubscribedAppProps> = ({
   credits,
   currentLanguage,
-  setLanguage
+  setLanguage,
+  isOverlayOpen,
+  onOpenSettings
 }) => {
   const queryClient = useQueryClient()
   const [view, setView] = useState<"queue" | "solutions" | "debug">("queue")
@@ -42,10 +46,14 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
     return () => {
       cleanup()
     }
-  }, [])
+  }, [queryClient])
 
   // Dynamically update the window size
   useEffect(() => {
+    if (isOverlayOpen) {
+      return
+    }
+
     if (!containerRef.current) return
 
     const updateDimensions = () => {
@@ -66,25 +74,15 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
     const resizeObserver = new ResizeObserver(updateDimensions)
     resizeObserver.observe(containerRef.current)
 
-    // Also watch DOM changes
-    const mutationObserver = new MutationObserver(updateDimensions)
-    mutationObserver.observe(containerRef.current, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      characterData: true
-    })
-
     // Do another update after a delay to catch any late-loading content
     const delayedUpdate = setTimeout(updateDimensions, 1000)
 
     return () => {
       resizeObserver.disconnect()
-      mutationObserver.disconnect()
       clearTimeout(fallbackTimer)
       clearTimeout(delayedUpdate)
     }
-  }, [view])
+  }, [view, isOverlayOpen])
 
   // Listen for events that might switch views or show errors
   useEffect(() => {
@@ -114,10 +112,10 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
         queryClient.removeQueries({
           queryKey: ["problem_statement"]
         })
+        queryClient.removeQueries({
+          queryKey: ["new_solution"]
+        })
         setView("queue")
-      }),
-      window.electronAPI.onResetView(() => {
-        queryClient.setQueryData(["problem_statement"], null)
       }),
       window.electronAPI.onProblemExtracted((data: any) => {
         if (view === "queue") {
@@ -132,16 +130,22 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
       })
     ]
     return () => cleanupFunctions.forEach((fn) => fn())
-  }, [view])
+  }, [queryClient, showToast, view])
 
   return (
-    <div ref={containerRef} className="min-h-0">
+    <div ref={containerRef} className="flex min-h-0 flex-col">
+      <Header
+        currentLanguage={currentLanguage}
+        setLanguage={setLanguage}
+        onOpenSettings={onOpenSettings}
+      />
       {view === "queue" ? (
         <Queue
           setView={setView}
           credits={credits}
           currentLanguage={currentLanguage}
           setLanguage={setLanguage}
+          isSettingsOpen={isOverlayOpen}
         />
       ) : view === "solutions" ? (
         <Solutions
@@ -149,6 +153,7 @@ const SubscribedApp: React.FC<SubscribedAppProps> = ({
           credits={credits}
           currentLanguage={currentLanguage}
           setLanguage={setLanguage}
+          isSettingsOpen={isOverlayOpen}
         />
       ) : null}
     </div>

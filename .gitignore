@@ -2,8 +2,6 @@ node_modules
 dist-electron
 release
 dist
-.env
-.env.*
 **/.DS_Store
 **/.vscode
 **/.idea
@@ -12,19 +10,16 @@ scripts/
 scripts/manual-notarize.js
 invisible_launcher.vbs
 
-# Local Configuration & Logs
+# Local runtime/config files
 config.json
 config.js
+
+# Local debug output
+build_errors*.txt
 ollama_output.txt
-
-# Package Manager overrides (if mostly using npm)
-bun.lockb
-yarn.lock
-pnpm-lock.yaml
-
-# Debug & Misc Logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+
+# TypeScript/Vite build artifacts
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts

@@ -1,756 +1,571 @@
 <div align="center">
-  <h1>🚀 Interview Coder</h1>
-  <p><strong>Open-source Electron desktop app for screenshot-based coding interview assistance and theory Q&A, powered entirely by a local AI model.</strong></p>
-  <p><i>✨ No Paywalls • No Subscriptions • No API Keys • 100% Offline Inference ✨</i></p>
-  
-  [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-  [![Built with Electron](https://img.shields.io/badge/Built%20with-Electron-9feaf9.svg)](https://www.electronjs.org/)
-  [![React](https://img.shields.io/badge/React-18.0-61dafb.svg)](https://react.dev/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6.svg)](https://www.typescriptlang.org/)
+
+# Interview Coder
+
+### A local-first desktop app that reads coding screenshots and turns them into solutions with Ollama
+
+<p>
+  <strong>Beautiful desktop workflow.</strong>
+  <strong>Local AI.</strong>
+  <strong>No API keys.</strong>
+  <strong>No subscriptions.</strong>
+</p>
+
+<p>
+  <a href="https://github.com/aadidevj007/Interview_coder">Repository</a>
+  ·
+  <a href="https://github.com/aadidevj007/Interview_coder/issues">Issues</a>
+</p>
+
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Electron](https://img.shields.io/badge/Desktop-Electron-9feaf9.svg)](https://www.electronjs.org/)
+[![React](https://img.shields.io/badge/UI-React-61dafb.svg)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/Code-TypeScript-3178c6.svg)](https://www.typescriptlang.org/)
+[![Ollama](https://img.shields.io/badge/AI-Ollama-111111.svg)](https://ollama.com)
+
 </div>
 
 ---
 
-## ✨ Key Features
+## Overview
+
+Interview Coder is an Electron desktop application that helps users solve coding questions from screenshots or uploaded images.
+
+Instead of sending your screenshots to a cloud service, the app connects to your local Ollama server and processes everything on your own machine.
+
+This makes the app:
+
+- easier to use
+- private by default
+- fast to iterate with
+- understandable even for people who are not deeply technical
+
+---
+
+## Why This Project Exists
+
+Many coding-assistant tools are:
+
+- locked behind subscriptions
+- dependent on API keys
+- cloud-only
+- overloaded with setup complexity
+
+Interview Coder takes a simpler path:
+
+- take a screenshot
+- extract the coding question
+- generate a solution
+- validate the answer
+- continue debugging if needed
+
+All of that happens through a local desktop app with local Ollama models.
+
+---
+
+## What It Can Do
 
 | Feature | Description |
-|---------|-------------|
-| 👻 **Invisible Always-on-Top Window** | Bypasses screen-sharing restrictions with a stealth UI (toggleable via `Ctrl+B`). Perfect for online interviews and coding practice. |
-| 📸 **Intelligent Screenshot Queue** | Instantly capture problem statements, compile errors, and code snippets with `Ctrl+H` or upload image files directly. Queue up to 5 screenshots for batch processing. |
-| 📤 **Screenshot Upload Support** | Upload image files directly (`Ctrl+U`) instead of just taking screenshots—perfect for question code or error messages. |
-| 👨‍💻 **Smart Problem Detection** | Automatically distinguishes between practical algorithm challenges and theoretical definition questions, formatting output dynamically. |
-| ⚙️ **100% Offline Processing** | All reasoning, problem extraction, and debugging rely on a local Ollama instance. Zero cloud dependency. Zero telemetry. |
-| ⌨️ **Blazing-Fast Keyboard Shortcuts** | Fully keyboard-driven workflow—capture, process, and reset without ever moving your mouse. See [shortcuts table](#-global-keyboard-shortcuts) below. |
-| 🎛️ **Per-Stage Model Tuning** | Select individual LLM models for Problem Extraction, Solution Generation, and Debugging directly from the app settings. |
-| 🔊 **Voice Input Support** | Dictate questions using your microphone for hands-free interaction. |
-| 💾 **Persistent Configuration** | All settings stored locally in your app data directory—no cloud sync, complete privacy.
+| --- | --- |
+| Screenshot capture | Capture coding questions directly from your screen |
+| Image upload | Upload screenshots or saved images from disk |
+| Queue multiple screenshots | Add several screenshots before running analysis |
+| Vision-based extraction | Use a vision model such as `llava` or `llama3.2-vision` to read screenshots |
+| Code generation | Use a coding model such as `qwen2.5-coder` to generate a solution |
+| Validation pass | Run a second model pass to improve correctness |
+| Debug workflow | Add more screenshots later to refine or debug the answer |
+| Local config | Save settings in your machine's app-data folder |
+| Overlay controls | Toggle visibility, opacity, invisibility mode, and mouse passthrough |
 
 ---
 
-## 🏗️ Application Architecture
+## How A Person Uses It
 
-The architecture follows a **three-layer model**: React frontend → Electron IPC layer → Local AI backend.
+The workflow is intentionally simple:
 
-### 📊 System Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    FRONTEND LAYER (React)                   │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ Queue View   │  │Solution View │  │ Settings UI  │     │
-│  │ Screenshots  │  │ Code + Output│  │  Model Select│     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-└────────────────┬────────────────────────────────────────────┘
-                 │
-        ┌────────▼────────────────────┐
-        │   ELECTRON IPC LAYER        │
-        │ (preload.ts / ipcHandlers)  │
-        │                             │
-        │ • Screenshot capture        │
-        │ • File dialog handling      │
-        │ • Window management         │
-        │ • Config I/O                │
-        └────────┬────────────────────┘
-                 │
-┌────────────────▼──────────────────────────────────────────┐
-│          ELECTRON MAIN PROCESS (Node.js)                 │
-│                                                           │
-│  ProcessingHelper.ts                                     │
-│  └─ Orchestrates multi-stage inference                   │
-│     • Stage 1: Problem extraction from images            │
-│     • Stage 2: Solution generation                       │
-│     • Stage 3: Debugging & follow-up Q&A               │
-│                                                           │
-│  ScreenshotHelper.ts                                     │
-│  └─ Manages screenshot queue & file operations           │
-│     • Platform-specific capture (Windows/Mac/Linux)      │
-│     • Image preview generation                           │
-│     • File upload handling                               │
-│                                                           │
-│  ConfigHelper.ts                                         │
-│  └─ Persistent configuration management                  │
-│     • Model selections                                   │
-│     • UI preferences & opacity settings                  │
-│     • Keyboard shortcut configs                          │
-│                                                           │
-│  ShortcutsHelper.ts                                      │
-│  └─ Global keyboard shortcut registration                │
-│     • Cross-platform hotkey binding                      │
-│     • Seamless window & file interactions                │
-└────────────────┬──────────────────────────────────────────┘
-                 │
-        ┌────────▼────────────────────┐
-        │  LOCAL AI BACKEND           │
-        │  (Ollama HTTP Server)       │
-        │  http://localhost:11434     │
-        │                             │
-        │ POST /api/chat/completions │
-        │ Models:                     │
-        │ • qwen2.5-coder (default)  │
-        │ • deepseek-r1              │
-        │ • mistral / neural-chat    │
-        └────────────────────────────┘
-```
-
-### 📝 Component Code Architecture
-
-```typescript
-// src/App.tsx
-// Root component providing React Query context and toast system
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <SubscribedApp />
-      </ToastProvider>
-    </QueryClientProvider>
-  )
-}
-
-// src/_pages/Queue.tsx - Main workflow view
-// Handles screenshot capture, queuing, and processing initiation
-const Queue = () => {
-  // Fetch and manage screenshot queue
-  const { data: screenshots } = useQuery({
-    queryKey: ["screenshots"],
-    queryFn: fetchScreenshots
-  })
-  // Handle user interactions (capture, upload, solve)
-}
-
-// src/_pages/Solutions.tsx - Results display view
-// Shows extracted problem info, AI-generated solution, and Q&A
-
-// electron/ProcessingHelper.ts
-// THE CORE INFERENCE ORCHESTRATOR
-// Manages the multi-stage pipeline:
-// 1. Extract problem from screenshot(s)
-// 2. Generate solution code
-// 3. Handle follow-up debugging/Q&A
-
-// electron/ScreenshotHelper.ts
-// Platform-specific screenshot capturing & image management
-// Handles: native capture, file upload, preview generation
-
-// electron/ConfigHelper.ts
-// JSON config file loader/saver (cross-platform)
-// Defaults to environment variables if not found
-```
-
-### 🔄 **Data Flow: From Screenshot to Solution**
-
-```
-User presses Ctrl+H
-    ↓
-ScreenshotHelper.takeScreenshot()
-    ↓
-Platform-specific capture (Windows: PowerShell, Mac/Linux: native)
-    ↓
-Save to: ${userData}/screenshots/<uuid>.png
-    ↓
-Generate Base64 preview thumbnail
-    ↓
-Send "screenshot-taken" IPC event to Renderer
-    ↓
-React updates queue UI
-    ↓
-User presses Ctrl+Enter (Process Screenshots)
-    ↓
-ProcessingHelper.processScreenshots()
-    ├─ Stage 1: Send images + extraction prompt to Ollama
-    │  └ Response: { statement, constraints, io_examples }
-    │
-    ├─ Stage 2: Send extracted data + dynamic constraints to Ollama
-    │  └ Response: { code, complexity, time, space, explanation }
-    │
-    └─ Stage 3 (Optional): Debug mode or follow-up Q&A
-       └ Keep context, iteratively refine solution
-    ↓
-Display formatted solution in Solutions view
-```
+1. Open the app.
+2. Capture or upload a screenshot of the coding problem.
+3. Let the app extract the problem text.
+4. Let the app generate a code solution.
+5. Let the app validate the generated solution.
+6. Review the final output.
+7. If needed, add extra screenshots of your code, errors, or failed tests and debug again.
 
 ---
 
-## 🛠️ Installation & Setup
+## Quick Start
 
 ### Prerequisites
 
-Before you start, ensure you have the following installed:
+Install these first:
 
-- **Node.js** (v16+) and **npm** (v8+)
-  - Download from [nodejs.org](https://nodejs.org/)
-- **A locally running Ollama server** at `http://localhost:11434`
-  - Download from [ollama.ai](https://ollama.ai)
+- `Node.js`
+- `npm`
+- `Ollama`
 
-### Step 1: Start Ollama Server
+Ollama is available at [https://ollama.com](https://ollama.com).
 
-Ollama provides the local AI inference. Start it with:
+### Start Ollama
 
 ```bash
-# macOS / Linux
-ollama serve
-
-# Windows (if installed)
 ollama serve
 ```
 
-### Step 2: Pull AI Models
-
-In a **separate terminal**, pull the models you want to use:
+### Pull recommended models
 
 ```bash
-# Default model (recommended for coding)
+ollama pull llava
 ollama pull qwen2.5-coder
+```
 
-# Alternative models
+Optional alternatives:
+
+```bash
+ollama pull llama3.2-vision
 ollama pull deepseek-r1:1.5b
 ollama pull mistral
-ollama pull neural-chat
+```
 
-# List all your downloaded models
+Check installed models:
+
+```bash
 ollama list
 ```
 
-> **Tip:** Start with `qwen2.5-coder` if unsure. It's optimized for code problems.
-
-### Step 3: Clone & Install
+### Clone the repository
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd interview-coder
+git clone https://github.com/aadidevj007/Interview_coder.git
+cd Interview_coder
+```
 
-# Install dependencies
+### Install dependencies
+
+```bash
 npm install
 ```
 
-### Step 4: Launch the Application
-
-#### Stealth Mode (Hidden Console Window)
-
-**Windows** - Uses hidden VBScript executor:
-```bash
-./stealth-run.bat
-```
-
-**macOS / Linux**:
-```bash
-chmod +x stealth-run.sh
-./stealth-run.sh
-```
-
-#### Standard Development Mode
+### Run in development mode
 
 ```bash
 npm run dev
 ```
 
-> **⚠️ Pro Tip:** If the window launches invisibly, press `Ctrl+B` (or `Cmd+B`) to toggle visibility. You can also use the tray icon.
+### Build and run locally
+
+```bash
+npm run build
+npm run run-prod
+```
 
 ---
 
-## ⌨️ Keyboard Shortcuts Guide
+## Recommended Model Setup
 
-Master the entire workflow with these global hotkeys. All shortcuts work even when the window is hidden or another app is focused.
-
-| Action | Windows/Linux | macOS | Notes |
-|--------|---------------|-------|-------|
-| **Window Visibility** | `Ctrl` + `B` | `Cmd` + `B` | Toggle between hidden and visible states |
-| **Toggle Invisibility** | `Ctrl` + `Shift` + `I` | `Cmd` + `Shift` + `I` | Enable stealth mode (for screen sharing) |
-| **Toggle Mouse Passthrough** | `Ctrl` + `Shift` + `P` | `Cmd` + `Shift` + `P` | Click-through mode—clicks pass to apps behind |
-| **Take Screenshot** | `Ctrl` + `H` | `Cmd` + `H` | Capture current screen instantly |
-| **Upload Screenshot** | `Ctrl` + `U` | `Cmd` + `U` | Open file dialog to upload image file |
-| **Delete Last Screenshot** | `Ctrl` + `L` | `Cmd` + `L` | Remove the most recent screenshot from queue |
-| **Process All Screenshots** | `Ctrl` + `Enter` | `Cmd` + `Enter` | Send queued screenshots to AI for analysis |
-| **Reset Everything** | `Ctrl` + `R` | `Cmd` + `R` | Clear queue, reset view, cancel ongoing requests |
-| **Move Window Left** | `Ctrl` + `←` | `Cmd` + `←` | Shift window 10px to the left |
-| **Move Window Right** | `Ctrl` + `→` | `Cmd` + `→` | Shift window 10px to the right |
-| **Move Window Up** | `Ctrl` + `↑` | `Cmd` + `↑` | Shift window 10px upward |
-| **Move Window Down** | `Ctrl` + `↓` | `Cmd` + `↓` | Shift window 10px downward |
-| **Decrease Opacity** | `Ctrl` + `[` | `Cmd` + `[` | Make window more transparent (10% steps) |
-| **Increase Opacity** | `Ctrl` + `]` | `Cmd` + `]` | Make window more opaque (10% steps) |
-| **Open Settings** | N/A (UI button) | N/A (UI button) | Access model selection and preferences |
-| **Quit Application** | `Ctrl` + `Q` | `Cmd` + `Q` | Exit Interview Coder completely |
-
-> **Workflow Example:**
-> 1. Press `Ctrl+H` to capture problem statement
-> 2. Press `Ctrl+H` again to capture your error output (up to 5 screenshots)
-> 3. Press `Ctrl+Enter` to send everything to AI
-> 4. Review solution in Solutions view
-> 5. Press `Ctrl+R` to reset and start over
-
----
-
-## ⚙️ Configuration & Customization
-
-### Configuration File Location
-
-All settings are stored as JSON in your OS-specific app data directory:
-
-| Platform | Path |
-|----------|------|
-| **Windows** | `%APPDATA%\interview-coder-v1\config.json` |
-| **macOS** | `~/Library/Application Support/interview-coder-v1/config.json` |
-| **Linux** | `~/.config/interview-coder-v1/config.json` |
-
-### Configuration Options
+Use this setup for the smoothest experience:
 
 ```json
-// config.json - Edit these settings directly or via UI
 {
-  "modelProvider": "ollama",           // AI provider: "ollama" (only option)
-  "extractionModel": "qwen2.5-coder",  // Model for problem extraction
-  "solutionModel": "qwen2.5-coder",    // Model for code generation
-  "debuggingModel": "qwen2.5-coder",   // Model for debugging Q&A
-  "language": "python",                // Programming language preference
-  "opacity": 1.0,                      // Window opacity (0.1 - 1.0)
-  "invisibilityEnabled": false,        // Start in stealth mode
-  "mousePassthroughEnabled": false     // Enable click-through by default
+  "extractionModel": "llava",
+  "solutionModel": "qwen2.5-coder",
+  "validationModel": "qwen2.5-coder"
 }
 ```
 
-### Changing Models
+Important:
 
-1. **Via Settings UI:**
-   - Click the ⚙️ gear icon or press the settings button
-   - Select different models from dropdowns
-   - Settings save automatically
+- `extractionModel` must be a vision model
+- `solutionModel` should be a coding model
+- `validationModel` should be a coding model
 
-2. **Direct Edit:**
-   - Stop the application
-   - Open `config.json` in your text editor
-   - Change model names (must match `ollama list` output)
-   - Restart application
-
-3. **Environment Variables (Alternative):**
-   ```bash
-   # Set these before launching the app
-   export EXTRACTION_MODEL=deepseek-r1:1.5b
-   export SOLUTION_MODEL=qwen2.5-coder
-   export DEBUGGING_MODEL=mistral
-   ```
+If you use a coding-only model for screenshot extraction, image processing will fail.
 
 ---
 
-## 🚀 Development Guide
+## Keyboard Shortcuts
 
-### Project Structure
+| Action | Windows / Linux | macOS |
+| --- | --- | --- |
+| Toggle window visibility | `Ctrl + B` | `Cmd + B` |
+| Toggle invisibility mode | `Ctrl + Shift + I` | `Cmd + Shift + I` |
+| Toggle mouse passthrough | `Ctrl + Shift + P` | `Cmd + Shift + P` |
+| Take screenshot | `Ctrl + H` | `Cmd + H` |
+| Upload screenshot | `Ctrl + U` | `Cmd + U` |
+| Delete last screenshot | `Ctrl + L` | `Cmd + L` |
+| Process screenshots | `Ctrl + Enter` | `Cmd + Enter` |
+| Reset app state | `Ctrl + R` | `Cmd + R` |
+| Move window left | `Ctrl + Left` | `Cmd + Left` |
+| Move window right | `Ctrl + Right` | `Cmd + Right` |
+| Move window up | `Ctrl + Up` | `Cmd + Up` |
+| Move window down | `Ctrl + Down` | `Cmd + Down` |
+| Decrease opacity | `Ctrl + [` | `Cmd + [` |
+| Increase opacity | `Ctrl + ]` | `Cmd + ]` |
+| Quit application | `Ctrl + Q` | `Cmd + Q` |
 
-```
-interview-coder/
-├── electron/                 # Electron main process (Node.js)
-│   ├── main.ts              # App entry point, window creation
-│   ├── ipcHandlers.ts       # IPC channel implementations
-│   ├── ProcessingHelper.ts  # Core AI inference orchestration
-│   ├── ScreenshotHelper.ts  # Screenshot capture & file handling
-│   ├── ConfigHelper.ts      # Config file I/O
-│   ├── ShortcutsHelper.ts   # Global keyboard shortcuts
-│   └── autoUpdater.ts       # Auto-update logic
-│
-├── src/                      # React frontend
-│   ├── App.tsx              # Root React component
-│   ├── main.tsx             # React entry point
-│   ├── _pages/              # Page/view components
-│   │   ├── Queue.tsx        # Screenshot queue & capture UI
-│   │   ├── Solutions.tsx    # Formatted solution display
-│   │   ├── Debug.tsx        # Debugging Q&A interface
-│   │   └── SubscribedApp.tsx # Main app wrapper
-│   ├── components/          # Reusable React components
-│   │   ├── Queue/           # Screenshot queue components
-│   │   ├── Solutions/       # Solution display components
-│   │   ├── Settings/        # Settings dialog
-│   │   └── ui/              # Shadcn UI components
-│   ├── types/               # TypeScript interfaces
-│   │   ├── electron.d.ts    # Electron IPC type definitions
-│   │   └── screenshots.ts   # Data type interfaces
-│   ├── lib/                 # Utilities & helpers
-│   │   ├── supabase.ts      # (Not used in offline version)
-│   │   └── utils.ts         # General utilities
-│   └── contexts/            # React Context providers
-│       └── toast.tsx        # Toast notification system
-│
-├── public/                   # Static assets
-│   └── index.html
-│
-├── package.json             # Dependencies & scripts
-├── tsconfig.json            # TypeScript configuration
-├── vite.config.ts           # Vite bundler config
-├── tailwind.config.js       # Tailwind CSS config
-└── electron-builder.yml     # Electron packaging config
+---
+
+## System Architecture
+
+Interview Coder is built as a local-first desktop pipeline with four clearly separated layers.
+
+This separation keeps the app easier to understand, easier to debug, and easier to extend.
+
+**The flow is simple:**
+
+- **User layer**: captures screenshots, uploads images, and reviews results
+- **Renderer layer**: shows the interface and manages the app experience
+- **Electron layer**: handles desktop capabilities, local files, settings, and orchestration
+- **Ollama layer**: runs local AI models for extraction, generation, and validation
+
+### Architecture at a glance
+
+```text
+User
+  -> React interface
+  -> Electron desktop engine
+  -> Ollama local AI
 ```
 
-### Running in Development Mode
+### System architecture diagram
+
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│  1. USER EXPERIENCE LAYER                                            │
+│  Capture screenshots • Upload images • Review answers                │
+└───────────────────────────────┬──────────────────────────────────────┘
+                                │
+                                │ user actions
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  2. RENDERER LAYER (React)                                           │
+│  Queue view • Solutions view • Debug view • Settings dialog          │
+└───────────────────────────────┬──────────────────────────────────────┘
+                                │
+                                │ secure bridge via preload + IPC
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  3. DESKTOP ORCHESTRATION LAYER (Electron Main)                      │
+│  ConfigHelper • ScreenshotHelper • ProcessingHelper                  │
+│  Window control • File access • Queue management • Workflow logic    │
+└───────────────────────────────┬──────────────────────────────────────┘
+                                │
+                                │ local HTTP requests
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  4. AI INFERENCE LAYER (Ollama)                                      │
+│  Vision model for screenshot reading                                 │
+│  Coding model for solution generation and validation                 │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### Architecture in plain language
+
+- The React UI handles what the user sees and clicks.
+- Electron preload and IPC let the UI safely talk to the desktop layer.
+- The Electron main process handles screenshots, local files, settings, and orchestration.
+- Ollama provides the local AI models used for extraction, generation, and validation.
+
+---
+
+## Internal Architecture
+
+### Main application flow
+
+```text
+Renderer UI
+  -> preload bridge
+  -> IPC handlers
+  -> processing helpers
+  -> Ollama HTTP API
+```
+
+### Core backend responsibilities
+
+| File | Responsibility |
+| --- | --- |
+| `electron/main.ts` | App bootstrap, window creation, app lifecycle |
+| `electron/preload.ts` | Safe bridge between renderer and Electron APIs |
+| `electron/ipcHandlers.ts` | Exposes commands such as screenshot, upload, solve, reset |
+| `electron/ConfigHelper.ts` | Loads and saves config, normalizes legacy settings |
+| `electron/ScreenshotHelper.ts` | Captures screenshots, builds previews, manages queues |
+| `electron/ProcessingHelper.ts` | Runs extraction, generation, validation, and debug flows |
+| `electron/ollamaService.ts` | Sends requests to Ollama and parses model responses |
+
+---
+
+## Data Flow Diagram
+
+This diagram shows what happens from screenshot to final solution.
+
+```text
+User action
+  │
+  ├─ Take screenshot
+  │   or
+  └─ Upload image
+      │
+      ▼
+ScreenshotHelper
+  │
+  ├─ stores file locally
+  ├─ creates preview
+  └─ adds item to queue
+      │
+      ▼
+ProcessingHelper
+  │
+  ├─ Stage 1: extraction
+  │   -> send image to vision model
+  │   -> return structured problem data
+  │
+  ├─ Stage 2: generation
+  │   -> send extracted problem to coding model
+  │   -> return initial code solution
+  │
+  └─ Stage 3: validation
+      -> send candidate solution to validation model
+      -> return improved final answer
+          │
+          ▼
+Renderer UI
+  │
+  ├─ show problem statement
+  ├─ show generated code
+  ├─ show reasoning and complexity
+  └─ allow extra screenshots for debugging
+```
+
+---
+
+## Folder Structure
+
+```text
+Interview_coder/
+├─ .github/                       # GitHub workflows and repo metadata
+├─ assets/                        # Icons and packaging assets
+├─ build/                         # Build-time resources and platform configs
+├─ dist/                          # Built renderer output
+├─ dist-electron/                 # Built Electron output
+├─ electron/                      # Electron main-process code
+│  ├─ main.ts                     # App entry point
+│  ├─ preload.ts                  # Renderer-to-main bridge
+│  ├─ ipcHandlers.ts              # IPC command handlers
+│  ├─ ConfigHelper.ts             # Config loading and migrations
+│  ├─ ScreenshotHelper.ts         # Screenshot and upload handling
+│  ├─ ProcessingHelper.ts         # Main orchestration pipeline
+│  ├─ ollamaService.ts            # Ollama API integration
+│  └─ autoUpdater.ts              # Update logic
+├─ renderer/                      # Additional renderer-side resources
+├─ src/                           # React application source
+│  ├─ _pages/                     # Top-level pages
+│  │  ├─ Queue.tsx                # Screenshot queue screen
+│  │  ├─ Solutions.tsx            # Solution/result screen
+│  │  ├─ Debug.tsx                # Debug screen
+│  │  └─ SubscribedApp.tsx        # App shell
+│  ├─ components/                 # Reusable UI components
+│  │  ├─ Queue/                   # Queue-related components
+│  │  ├─ Solutions/               # Solution-related components
+│  │  ├─ Settings/                # Settings UI
+│  │  ├─ shared/                  # Shared UI elements
+│  │  └─ ui/                      # Base UI primitives
+│  ├─ contexts/                   # React context providers
+│  ├─ types/                      # TypeScript shared types
+│  ├─ App.tsx                     # Root app component
+│  ├─ main.tsx                    # React entry point
+│  └─ index.css                   # Global styles
+├─ package.json                   # Scripts and dependencies
+├─ vite.config.ts                 # Vite config
+├─ tsconfig.json                  # TypeScript config
+├─ .gitignore                     # Git ignore rules
+└─ README.md                      # Project documentation
+```
+
+---
+
+## Project Structure Summary
+
+If you are new to the codebase, this is the easiest mental model:
+
+- `src/` is the visible app
+- `electron/` is the desktop brain
+- `ollamaService.ts` is the AI connector
+- `ProcessingHelper.ts` is the workflow engine
+- `ConfigHelper.ts` is the settings manager
+- `ScreenshotHelper.ts` is the image queue and screenshot manager
+
+---
+
+## Configuration
+
+Settings are stored locally in your app-data folder.
+
+### Config locations
+
+| Platform | Path |
+| --- | --- |
+| Windows | `%APPDATA%\interview-coder-v1\config.json` |
+| macOS | `~/Library/Application Support/interview-coder-v1/config.json` |
+| Linux | `~/.config/interview-coder-v1/config.json` |
+
+### Current config format
+
+```json
+{
+  "modelProvider": "ollama",
+  "extractionModel": "llava",
+  "solutionModel": "qwen2.5-coder",
+  "validationModel": "qwen2.5-coder",
+  "language": "python",
+  "opacity": 1,
+  "invisibilityEnabled": false,
+  "mousePassthroughEnabled": false
+}
+```
+
+### What each setting means
+
+| Key | Meaning |
+| --- | --- |
+| `modelProvider` | AI backend provider, currently Ollama |
+| `extractionModel` | Vision model used to read screenshots |
+| `solutionModel` | Coding model used for first-pass generation |
+| `validationModel` | Coding model used for second-pass validation |
+| `language` | Preferred output language |
+| `opacity` | Window transparency |
+| `invisibilityEnabled` | Whether invisibility mode is enabled |
+| `mousePassthroughEnabled` | Whether clicks pass through the overlay |
+
+---
+
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the app in development mode |
+| `npm run start` | Start with the current dev-style startup flow |
+| `npm run build` | Build renderer and Electron bundles |
+| `npm run run-prod` | Run the built app locally |
+| `npm run lint` | Run ESLint |
+| `npm run package` | Build and package the app |
+| `npm run package-win` | Package for Windows |
+| `npm run package-mac` | Package for macOS |
+
+---
+
+## Troubleshooting
+
+## 1. Screenshot upload fails
+
+Check that your extraction model is a vision model:
+
+```json
+{
+  "extractionModel": "llava"
+}
+```
+
+Then verify Ollama:
 
 ```bash
-# Terminal 1: Start the React dev server (Vite)
-npm run dev
-
-# Terminal 2: Start the Electron app
-npm run electron-dev
+ollama list
+curl http://127.0.0.1:11434/api/tags
 ```
 
-The React app hot-reloads on `http://localhost:5173`.
+## 2. Model not found
 
-### Building for Production
+Make sure the model name exactly matches `ollama list`.
+
+Examples:
+
+- `llava`
+- `llama3.2-vision`
+- `qwen2.5-coder`
+- `deepseek-r1:1.5b`
+
+## 3. The window seems invisible
+
+Try:
+
+- `Ctrl + B` or `Cmd + B`
+- `Ctrl + ]` or `Cmd + ]`
+- setting `"invisibilityEnabled": false` in the config file
+
+## 4. Solution generation fails
+
+Test the coding model directly:
 
 ```bash
-# Build everything (React + Electron)
-npm run build
-
-# Create installer packages
-npm run package-win     # Windows .exe installer
-npm run package-mac     # macOS .dmg installer
-npm run package-linux   # Linux AppImage
-
-# Output goes to: ./dist/
+ollama run qwen2.5-coder
 ```
 
-### Adding New IPC Channels
+If that fails, the issue is on the Ollama/model side rather than the UI.
 
-1. **Define the handler in `electron/ipcHandlers.ts`:**
-   ```typescript
-   ipcMain.handle('my-new-handler', async (event, arg) => {
-     // Your logic here
-     return { success: true, data: 'result' }
-   })
-   ```
+## 5. Settings do not stick
 
-2. **Add TypeScript type in `src/types/electron.d.ts`:**
-   ```typescript
-   interface ElectronAPI {
-     myNewHandler: (arg: string) => Promise<{ success: boolean; data: string }>
-   }
-   ```
-
-3. **Use in React component:**
-   ```typescript
-   const result = await window.electronAPI.myNewHandler('parameter')
-   ```
-
-### Debugging
-
-**Inspect Main Process:**
-```bash
-# In DevTools Console of main window or create a debug window in main.ts
-mainWindow.webContents.openDevTools()
-```
-
-**View Application Logs:**
-- **Windows:** `%APPDATA%\interview-coder-v1\`
-- **macOS:** `~/Library/Logs/interview-coder-v1/`
-- **Linux:** `~/.local/share/interview-coder-v1/logs/`
+Inspect the config file in the app-data folder. If needed, delete it and restart the app so a fresh config is created.
 
 ---
 
-## 📖 API Documentation
+## Privacy
 
-### Core IPC Methods
+Interview Coder is built around local processing.
 
-#### Screenshot Management
-```typescript
-// Take a screenshot of current screen
-triggerScreenshot(): Promise<{ success: boolean; error?: string }>
-
-// Upload an image file from disk
-uploadScreenshot(): Promise<{ success: boolean; error?: string }>
-
-// Delete last screenshot from queue
-deleteLastScreenshot(): Promise<{ success: boolean; error?: string }>
-
-// Get current screenshot queue
-getScreenshots(): Promise<Array<{ path: string; preview: string }>>
-
-// Delete specific screenshot by path
-deleteScreenshot(path: string): Promise<{ success: boolean; error?: string }>
-```
-
-#### Processing & AI
-```typescript
-// Send queued screenshots to AI for analysis
-triggerProcessScreenshots(): Promise<{ success: boolean; error?: string }>
-
-// Send text query for follow-up Q&A
-triggerProcessTextQuery(query: string): Promise<{ success: boolean; error?: string }>
-
-// Ask interviewer a specific question (for advanced debugging)
-askInterviewerQuestion(payload: {
-  question: string
-  solutionCode?: string
-  thoughts?: string[]
-}): Promise<{ success: boolean; answer?: string; error?: string }>
-```
-
-#### Window Management
-```typescript
-// Toggle window visibility (hot key: Ctrl+B)
-toggleMainWindow(): Promise<{ success: boolean; error?: string }>
-
-// Update displayed content dimensions
-updateContentDimensions(width: number, height: number): Promise<void>
-
-// Move window (hot keys: Ctrl+Arrow Keys)
-triggerMoveLeft/Right/Up/Down(): Promise<{ success: boolean; error?: string }>
-```
-
-#### Settings & Configuration
-```typescript
-// Get all current settings
-getConfig(): Promise<{
-  modelProvider: string
-  extractionModel: string
-  solutionModel: string
-  debuggingModel: string
-  language: string
-  opacity: number
-  invisibilityEnabled: boolean
-  mousePassthroughEnabled: boolean
-}>
-
-// Update one or more settings
-updateConfig(partial: Partial<Config>): Promise<unknown>
-
-// Toggle invisibility mode (stealth UI)
-toggleInvisibilityMode(): Promise<{ enabled: boolean }>
-
-// Toggle mouse passthrough (click-through mode)
-toggleMousePassthroughMode(): Promise<{ enabled: boolean }>
-```
-
-#### Event Listeners
-```typescript
-// Listen for screenshot capture events
-onScreenshotTaken(callback: (data: { path: string; preview: string }) => void): () => void
-
-// Listen for AI processing start
-onSolutionStart(callback: () => void): () => void
-
-// Listen for solution ready
-onSolutionSuccess(callback: (data: any) => void): () => void
-
-// Listen for processing errors
-onSolutionError(callback: (error: string) => void): () => void
-
-// Listen for debug mode start
-onDebugStart(callback: () => void): () => void
-
-// Listen for view reset
-onResetView(callback: () => void): () => void
-
-// Listen for credit updates (if using payment model)
-onCreditsUpdated(callback: (credits: number) => void): () => void
-```
+- no cloud inference by default
+- no API key requirement
+- no account required
+- screenshots and prompts stay on your machine unless you choose otherwise
 
 ---
 
-## 🐞 Troubleshooting Guide
-
-### Common Issues & Solutions
-
-#### ❌ "Processing fails instantly"
-**Problem:** Screenshots uploaded but nothing happens, or you get an immediate error.
-
-**Solutions:**
-```bash
-# 1. Verify Ollama is running
-curl http://localhost:11434/api/tags
-# Should return JSON list of models
-
-# 2. Restart Ollama
-killall ollama    # or close the Ollama app
-ollama serve      # Start fresh
-
-# 3. Check model loading
-ollama list       # List available models
-ollama pull qwen2.5-coder  # Re-pull if missing
-```
-
----
-
-#### ❌ "Model not found" error
-**Problem:** Settings says the model doesn't exist, even after pulling it.
-
-**Solutions:**
-1. Verify model name exactly matches `ollama list` output
-   - Case-sensitive! (`qwen2.5-coder` not `Qwen2.5-Coder`)
-2. Check `config.json` manually:
-   ```bash
-   cat ~/.config/interview-coder-v1/config.json  # Linux/Mac
-   type %APPDATA%\interview-coder-v1\config.json  # Windows
-   ```
-3. Try changing all three model names to same working model temporarily
-
----
-
-#### ❌ "Window won't appear" or "stays invisible"
-**Problem:** App launched but window is totally hidden.
-
-**Solutions:**
-1. **Spam the visibility toggle:**
-   ```bash
-   # Press repeatedly:
-   Ctrl+B (or Cmd+B on Mac)
-   ```
-
-2. **Reset opacity to maximum:**
-   ```bash
-   # Hold down:
-   Ctrl+] (or Cmd+])    # Repeat until fully opaque
-   ```
-
-3. **Clear invisibility setting:**
-   - Delete `config.json` and restart—defaults will take effect
-   - Or manually set: `"invisibilityEnabled": false` in config
-
-4. **Check if window exists but off-screen:**
-   - Delete config to reset window position
-   - App will recenter on relaunch
-
----
-
-#### ❌ "Screenshot capture fails or is blank"
-**Problem:** `Ctrl+H` doesn't capture anything, or image is all black.
-
-**Solutions:**
-1. **Grant screen recording permissions** (macOS/Linux):
-   - **macOS:** System Preferences → Security & Privacy → Screen Recording → Allow Interview Coder
-   - **Linux:** Check compositor is running; Wayland may need extra config
-
-2. **Windows PowerShell issue:**
-   - App auto-falls back to multiple methods, but if all fail:
-   ```powershell
-   # Run as Administrator
-   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-   ```
-
-3. **Multiple monitors:**
-   - App captures all monitors—this is intentional
-   - If blank, check if sharing the right monitor
-
----
-
-#### ❌ "Settings changes not saving"
-**Problem:** Changed model in Settings, but it reverts on restart.
-
-**Solutions:**
-1. Check app data directory is writable:
-   ```bash
-   # Linux/Mac
-   ls -la ~/.config/interview-coder-v1/
-   
-   # Windows
-   dir %APPDATA%\interview-coder-v1\
-   ```
-
-2. Verify `config.json` permissions are `644` (readable/writable)
-
-3. Manually edit `config.json` if UI doesn't work:
-   ```json
-   { "solutionModel": "deepseek-r1:1.5b" }
-   ```
-
----
-
-#### ❌ "High CPU usage or slow processing"
-**Problem:** App is freezing or consuming lots of CPU.
-
-**Solutions:**
-1. **Check Ollama memory usage:**
-   - Smaller models use less memory: `Neural-chat` (4GB) vs `qwen2.5-coder` (8GB)
-   - Try quantized versions: `qwen2.5-coder:7b`
-
-2. **Reduce screenshot resolution:**
-   - App automatically downscales, but you can clear cache:
-   ```bash
-   rm -rf ~/.config/interview-coder-v1/  # Clears all cached previews
-   ```
-
-3. **Close other apps** competing for system resources
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Whether it's bug reports, feature requests, or code improvements, please:
-
-1. **Report Issues:** Open a GitHub issue with:
-   - Your OS + version
-   - Ollama version (`ollama --version`)
-   - Steps to reproduce
-   - Screenshot of error (if applicable)
-
-2. **Submit Code:**
-   - Fork the repository
-   - Create a feature branch: `git checkout -b feature/your-feature`
-   - Make changes, test thoroughly
-   - Submit a pull request with clear description
-
-3. **Feature Ideas:**
-   - Real-time code syntax highlighting
-   - Support for additional AI providers (Claude, GPT-4, etc.)
-   - Enhanced debugging with variable inspection
-   - Multi-language support for UI
-
----
-
-## 📚 Tech Stack
+## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| **Frontend** | React 18, TypeScript, Tailwind CSS, Shadcn/ui, React Query |
-| **IPC & Main** | Electron 27+, Node.js 18+ |
-| **AI Inference** | Ollama local server, LLaMA-based models |
-| **Build Tools** | Vite, Electron Builder |
-| **Package Manager** | npm / bun |
-| **Styling** | Tailwind CSS v3, CSS modules |
+| --- | --- |
+| Desktop app | Electron |
+| UI | React, TypeScript, Tailwind CSS |
+| Data/state | React Query |
+| AI backend | Ollama |
+| Build tooling | Vite, Electron Builder |
 
 ---
 
-## 🔒 Privacy & Security
+## Contributing
 
-- ✅ **100% Offline** - No cloud calls, no telemetry, no analytics
-- ✅ **Full Privacy** - Your code and questions never leave your computer
-- ✅ **No API Keys** - Works entirely with local Ollama instance
-- ✅ **Open Source** - Audit the code anytime
-- ✅ **No User Tracking** - No accounts, no logins, no data collection
-- ✅ **Local Storage Only** - All configs stored in your app data directory
+Contributions are welcome.
 
----
+### Typical contribution flow
 
-## 📝 License
+1. Fork the repository.
+2. Create a branch.
+3. Make changes.
+4. Run `npm run lint`.
+5. Open a pull request.
 
-This project is licensed under the **GNU Affero General Public License v3.0**.
+When reporting a bug, please include:
 
-This means:
-- ✅ Free to use for any purpose
-- ✅ Can modify and redistribute
-- ⚠️ Must provide source code if distributed
-- ⚠️ Modifications must also be open source under AGPL-3.0
+- operating system
+- Ollama version
+- installed models from `ollama list`
+- relevant config
+- exact error message
 
-See [LICENSE](LICENSE) for full text.
+Repository:
 
----
-
-## 🙏 Acknowledgments
-
-- **Ollama** - For making local LLM inference accessible
-- **Qwen Team** - For qwen2.5-coder and community contributions
-- **DeepSeek** - For efficient reasoning models
-- **Electron** - For cross-platform desktop framework
-- **React** - For reactive UI framework
-- **All Contributors** - For bug reports, features, and improvements
+```text
+https://github.com/aadidevj007/Interview_coder
+```
 
 ---
 
-## 📞 Support & Community
+## License
 
-- **GitHub Issues:** Report bugs and request features  
-- **Discussions:** Ask questions and share tips  
-- **Ollama Community:** [ollama.ai/community](https://ollama.ai)
+This project is licensed under `AGPL-3.0-or-later`.
+
+See the repository license files for full details.
 
 ---
 
 <div align="center">
-  <p><strong>Made with ❤️ by the Interview Coder Community</strong></p>
-  <p><i>Your AI-powered coding interview companion</i></p>
-  <p>⭐ If this project helps you, please consider starring on GitHub! ⭐</p>
+  <strong>Interview Coder is designed to feel local, elegant, and easy to understand.</strong><br />
+  If this project helps you, consider starring the repository.
 </div>

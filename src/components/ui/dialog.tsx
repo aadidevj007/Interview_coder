@@ -25,21 +25,21 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed z-50 top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2",
-        "w-[90vw] max-w-md md:w-full",
-        "bg-white p-4 rounded-lg shadow-lg",
-        "focus:outline-none focus-visible:ring-0",
-        className
-      )}
-      style={{ maxHeight: '90vh', overflow: 'auto' }}
-      {...props}
-    >
-      {children}
-    </DialogPrimitive.Content>
+    <DialogOverlay className="flex items-center justify-center p-4">
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          "relative z-50 w-[90vw] max-w-md md:w-full",
+          "rounded-lg bg-white p-4 shadow-lg",
+          "focus:outline-none focus-visible:ring-0",
+          className
+        )}
+        style={{ maxHeight: "90vh", overflow: "auto" }}
+        {...props}
+      >
+        {children}
+      </DialogPrimitive.Content>
+    </DialogOverlay>
   </DialogPortal>
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName

@@ -23,10 +23,9 @@ interface ElectronAPI {
   }) => Promise<void>
   clearStore: () => Promise<{ success: boolean; error?: string }>
   getScreenshots: () => Promise<{
-    success: boolean
-    previews?: Array<{ path: string; preview: string }> | null
-    error?: string
-  }>
+    path: string
+    preview: string
+  }[]>
   deleteScreenshot: (
     path: string
   ) => Promise<{ success: boolean; error?: string }>
@@ -46,7 +45,16 @@ interface ElectronAPI {
   openExternal: (url: string) => void
   toggleMainWindow: () => Promise<{ success: boolean; error?: string }>
   triggerScreenshot: () => Promise<{ success: boolean; error?: string }>
+  uploadScreenshot: () => Promise<{ success: boolean; cancelled?: boolean; error?: string }>
+  uploadScreenshotBuffer: (payload: {
+    data: Uint8Array
+    name?: string
+  }) => Promise<{ success: boolean; path?: string; error?: string }>
+  copyToClipboard: (text: string) => Promise<{ success: boolean; error?: string }>
   triggerProcessScreenshots: () => Promise<{ success: boolean; error?: string }>
+  onProcessingStatus: (
+    callback: (data: { message: string; progress: number }) => void
+  ) => () => void
   triggerReset: () => Promise<{ success: boolean; error?: string }>
   triggerMoveLeft: () => Promise<{ success: boolean; error?: string }>
   triggerMoveRight: () => Promise<{ success: boolean; error?: string }>
